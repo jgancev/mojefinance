@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moje Finance</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Babel to transpile ES6 for older browsers -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; }
+        .dark { --primary: #1e40af; --bg: #121212; --card: #374151; --text: #f9fafb; --border: #4b5563; --tag-bg: #4b5563; --hover-bg: #4b5563; --field-bg: #ffffff; --field-text: #1e293b; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
+        .container { max-width: 500px; margin: 0 auto; }
+        .header-card { background: var(--primary); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
+        .stats { display: flex; justify-content: space-between; }
+        .stat-val { font-size: 1.5rem; font-weight: bold; }
+        .header-card { background: var(--primary); }
+        .form-card, .list-card { background: var(--card); padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); }
+                .chart-card { max-width: 300px; margin: 0 auto; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: var(--field-bg); color: var(--field-text); }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .transaction { position: relative; display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .tag { font-size: 0.8rem; padding: 2px 8px; border-radius: 12px; background: var(--tag-bg); color: var(--text); }
+        .menu-container { position: relative; display: inline-block; }
+        .menu-button { cursor: pointer; padding: 0 4px; }
+        .menu-options { display: none; position: absolute; right: 0; top: 100%; background: var(--card); border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,.1); z-index: 100; }
+        .menu-options span { display: block; padding: 8px 12px; cursor: pointer; white-space: nowrap; }
+        .menu-options span:hover { background: var(--hover-bg); }
+        .month-chip { display:inline-block; padding:4px 8px; margin:0 4px 4px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.9rem; color: var(--text); }
+        .month-chip.selected { background: var(--primary); color: white; }
+    </style>
+</head>
+<body onload="console.log('body onload');">
+
+
+<div class="container" id="loginSection">
+    <h2>Přihlášení</h2>
+    <input type="text" id="loginUser" placeholder="Uživatelské jméno">
+    <input type="password" id="loginPass" placeholder="Heslo">
+    <button type="button" onclick="login()">Přihlásit</button>
+    <p>Nemáte účet? <a href="javascript:void(0)" onclick="showRegister(); return false;">Zaregistrovat</a></p>
+</div>
+
+<div class="container" id="registerSection" style="display:none">
+    <h2>Registrace</h2>
+    <input type="text" id="regUser" placeholder="Uživatelské jméno">
+    <input type="password" id="regPass" placeholder="Heslo">
+    <button type="button" onclick="register()">Vytvořit účet</button>
+    <p>Máte účet? <a href="javascript:void(0)" onclick="showLogin(); return false;">Přihlásit</a></p>
+</div>
+
+<div class="container" id="adminSection" style="display:none">
+    <h2>Správa uživatelů</h2>
+    <div id="adminUserList"></div>
+    <button onclick="showApp()">Zpět</button>
+    <button onclick="logout()">Odhlásit</button>
+</div>
+
+<div class="container" id="appSection" style="display:none">
+    <div style="text-align:right; margin-bottom:10px;">
+        <span id="currentUserInfo"></span>
+    </div>
+    <div class="header-card">
+        <div style="margin-bottom: 15px;">Zůstatek</div>
+        <div class="stat-val" id="totalBalance">0 Kč</div>
+        <hr style="border: none; border-top: 1px solid var(--border); opacity: 0.2; margin: 15px 0;">
+        <div class="stats">
+            <div><small>Na den</small><div id="dailyAvg">0 Kč</div></div>
+        </div>
+    </div>
+
+
+    <div class="form-card" id="expenseForm">
+        <h3 id="expenseFormTitle" style="margin-top:0">Výdaje</h3>
+        <input type="date" id="date" placeholder="Datum">
+        <input type="text" id="desc" placeholder="Obchodník / Položka">
+        <input type="number" id="amount" placeholder="Částka (Kč)">
+        <select id="cat">
+            <option value="Jídlo">Jídlo 🍕</option>
+            <option value="Běžné">Běžné 🏠</option>
+            <option value="Blbosti">Blbosti 🛍️</option>
+            <option value="Nadst.">Nadstavba ✨</option>
+            <option value="Spoření">Spoření 💰</option>
+        </select>
+        <button id="expenseBtn" onclick="addTransaction()">Uložit</button>
+    </div>
+
+    <div class="list-card" id="history">
+        <h3 style="margin-top:0">Historie</h3>
+        <div id="monthChips" style="margin-bottom:10px;"></div>
+        <div id="txnList"></div>
+    </div>
+
+    <div class="form-card">
+        <h3 style="margin-top:0">Příjmy</h3>
+        <input type="date" id="dateIncome">
+        <input type="text" id="descIncome" placeholder="Popis příjmu">
+        <input type="number" id="amountIncome" placeholder="Částka (Kč)">
+        <button onclick="addIncome()">Uložit</button>
+    </div>
+    
+    <button onclick="clearData()" style="background: #ef4444; font-size: 0.7rem;">Smazat data tohoto uživatele</button>
+
+    <div class="list-card chart-card">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <div style="text-align:center; margin-top:10px;">
+        <label><input type="checkbox" id="darkToggle" onchange="toggleDarkMode()"> Dark mode</label>
+    </div>
+</div>
+
+<script type="text/babel">
+// debug helpers
+window.onerror = function(msg,src,line,col,err){ console.error('JS error: '+msg+' at '+line); };
+window.addEventListener('load', ()=>{ console.log('script loaded'); });
+// --- user and auth helpers --------------------------------------------------
+function getUsers() {
+    const data = localStorage.getItem('users');
+    if (!data) return [];
+    try { return JSON.parse(data) || []; }
+    catch (e) { console.warn('corrupt users, resetting'); localStorage.removeItem('users'); return []; }
+}
+function saveUsers(u) { localStorage.setItem('users', JSON.stringify(u)); }
+function getCurrentUser() { return JSON.parse(localStorage.getItem('currentUser')); }
+function setCurrentUser(u) { localStorage.setItem('currentUser', JSON.stringify(u)); }
+function hash(str) {
+    // extremely simple hash (base64) just for demo purposes
+    return btoa(str);
+}
+function ensureAdmin() {
+    let users = getUsers();
+    if (!users.find(x => x.isAdmin)) {
+        users.push({ username: 'admin', passwordHash: hash('admin'), isAdmin: true });
+        saveUsers(users);
+    }
+}
+
+function login() {
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value;
+    if (!u || !p) return alert('Vyplň uživatele i heslo.');
+    const users = getUsers();
+    const user = users.find(x => x.username === u);
+    if (!user || user.passwordHash !== hash(p)) return alert('Špatné přihlášení.');
+    setCurrentUser(user);
+    afterLogin();
+}
+
+function register() {
+    const u = document.getElementById('regUser').value.trim();
+    const p = document.getElementById('regPass').value;
+    if (!u || !p) return alert('Vyplň vše.');
+    let users = getUsers();
+    if (users.find(x => x.username === u)) return alert('Uživatel už existuje.');
+    users.push({ username: u, passwordHash: hash(p), isAdmin: false });
+    saveUsers(users);
+    alert('Účet vytvořen, nyní se přihlaš.');
+    showLogin();
+}
+
+function logout() {
+    localStorage.removeItem('currentUser');
+    showLogin();
+}
+
+async function afterLogin() {
+    const user = getCurrentUser();
+    document.getElementById('currentUserInfo').innerHTML =
+        `Přihlášen: ${user.username}${user.isAdmin ? ' <a href="#" onclick="showAdmin()">(admin)</a>' : ''}
+         &nbsp; <a href="#" onclick="logout()">Odhlásit</a>`;
+    showApp();
+    await loadTransactions();
+    initDateInput();
+    applyStoredTheme();
+}
+
+function showSection(id) {
+    ['loginSection', 'registerSection', 'appSection', 'adminSection'].forEach(s => {
+        const el = document.getElementById(s);
+        if (el) el.style.display = s === id ? 'block' : 'none';
+    });
+}
+function showLogin() { 
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    showSection('loginSection');
+    // allow pressing Enter in either field to trigger login
+    ['loginUser','loginPass'].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.onkeypress = e => { if (e.key === 'Enter') login(); };
+    });
+}
+function showRegister() { 
+    document.getElementById('regUser').value = '';
+    document.getElementById('regPass').value = '';
+    showSection('registerSection');
+}
+function showAdmin() { showSection('adminSection'); loadAdmin(); }
+function showApp() { showSection('appSection'); }
+
+function loadAdmin() {
+    const users = getUsers();
+    const listDiv = document.getElementById('adminUserList');
+    listDiv.innerHTML = '';
+    users.forEach((u, i) => {
+        listDiv.innerHTML += `<div>${u.username}${u.isAdmin ? ' (admin)' : ''}
+            ${u.isAdmin ? '' : `<button onclick="deleteUser('${u.username}')">Smazat</button>`}
+            <button onclick="resetPassword('${u.username}')">Reset hesla</button>
+            </div>`;
+    });
+    listDiv.innerHTML += `<div style="margin-top:10px;">
+        <input id="newUser" placeholder="Nový uživatel">
+        <input id="newPass" type="password" placeholder="heslo">
+        <button onclick="createUser()">Vytvořit</button>
+    </div>`;
+}
+
+function deleteUser(username) {
+    if (!confirm('Smazat uživatele ' + username + '?')) return;
+    let users = getUsers().filter(u => u.username !== username);
+    saveUsers(users);
+    // wipe any stored transactions for that user
+    localStorage.removeItem('tx_' + username);
+    localStorage.removeItem('currentMonth_' + username);
+    if (getCurrentUser() && getCurrentUser().username === username) logout();
+    showAdmin();
+}
+
+function resetPassword(username) {
+    const p = prompt('Nové heslo pro ' + username + ':');
+    if (p == null) return;
+    let users = getUsers();
+    let u = users.find(x => x.username === username);
+    if (u) { u.passwordHash = hash(p); saveUsers(users); alert('Heslo změněno'); }
+}
+
+function createUser() {
+    const u = document.getElementById('newUser').value.trim();
+    const p = document.getElementById('newPass').value;
+    if (!u || !p) return alert('Vyplň vše.');
+    let users = getUsers();
+    if (users.find(x => x.username === u)) return alert('Existuje.');
+    users.push({ username: u, passwordHash: hash(p), isAdmin: false });
+    saveUsers(users);
+    showAdmin();
+}
+
+// helpers for server storage
+async function loadBlob() {
+    // attempt server fetch; if it fails, fall back to the prior localStorage scheme
+    try {
+        const r = await fetch('storage.php');
+        if (!r.ok) throw new Error('bad response');
+        const j = await r.json();
+        return j || {};
+    } catch (e) {
+        console.warn('server fetch failed, using local copy', e);
+        // return anything we can reconstruct from localStorage for the current user
+        const usr = getCurrentUser();
+        if (!usr) return {};
+        const data = localStorage.getItem('tx_' + usr.username) || '[]';
+        const month = localStorage.getItem('currentMonth_' + usr.username) || 'all';
+        return { [usr.username]: { tx: data, month } };
+    }
+}
+async function saveBlob(blob) {
+    // write to server if possible, otherwise keep the previous local behaviour
+    try {
+        await fetch('storage.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(blob)
+        });
+    } catch (e) {
+        console.warn('server save failed, falling back to localStorage', e);
+        const usr = getCurrentUser();
+        if (usr) {
+            const entry = blob[usr.username] || {};
+            localStorage.setItem('tx_' + usr.username, entry.tx || '[]');
+            if (entry.month != null) localStorage.setItem('currentMonth_' + usr.username, entry.month);
+        }
+    }
+}
+
+async function loadTransactions() {
+    const usr = getCurrentUser();
+    const store = await loadBlob();
+    const entry = (store && store[usr.username]) || {};
+    transactions = entry.tx ? JSON.parse(entry.tx) : [];
+    currentMonth = entry.month || 'all';
+    if (currentMonth === '') currentMonth = 'all';
+    updateUI();
+}
+
+async function saveTransactions() {
+    const usr = getCurrentUser();
+    const store = await loadBlob();
+    store[usr.username] = { tx: JSON.stringify(transactions), month: currentMonth };
+    await saveBlob(store);
+}
+
+let transactions = [];
+let currentMonth = 'all';
+let editingIndex = null;
+let editingType = null;
+
+    function getMonth(date) {
+        if (!date) return null;
+        const d = new Date(date);
+        if (isNaN(d)) return null;
+        return d.toISOString().slice(0,7); // YYYY-MM
+    }
+    function formatMonthLabel(m) {
+        const [y,mo] = m.split('-');
+        return `${mo}/${y}`;
+    }
+    function selectMonth(m) {
+        currentMonth = m;
+        // save filter with transactions
+        saveTransactions();
+        updateUI();
+    }
+
+    let myChart;
+
+    // helper to grab date input when needed
+    function getDateInput() { return document.getElementById('date'); }
+
+
+    function updateUI() {
+        const historyDiv = document.getElementById('history');
+        const totalDiv = document.getElementById('totalBalance');
+        const dailyDiv = document.getElementById('dailyAvg');
+
+        // compute available months from data
+        let months = [...new Set(transactions.map(t => getMonth(t.date)).filter(m => m))];
+        months.sort((a,b) => b.localeCompare(a)); // newest first
+        months.unshift('all');
+        if (!months.includes(currentMonth)) {
+            // if the previously selected month disappears, choose the next real month if it exists
+            currentMonth = months.length > 1 ? months[1] : 'all';
+        }
+        const monthChipsDiv = document.getElementById('monthChips');
+        if (monthChipsDiv) {
+            monthChipsDiv.innerHTML = '';
+            months.forEach(m => {
+                const label = m === 'all' ? 'Vše' : formatMonthLabel(m);
+                monthChipsDiv.innerHTML += `<span class="month-chip${m===currentMonth?' selected':''}" onclick="selectMonth('${m}')">${label}</span>`;
+            });
+        }
+
+        // filter transactions by selected month
+        let displayTransactions = transactions;
+        if (currentMonth && currentMonth !== 'all') {
+            displayTransactions = transactions.filter(t => getMonth(t.date) === currentMonth);
+        }
+
+        // Výpočty
+        let total = displayTransactions.reduce((acc, curr) => acc + Number(curr.amount), 0);
+        totalDiv.innerText = `${total.toLocaleString()} Kč`;
+        dailyDiv.innerText = `${Math.round(total / daysUntilSecondWorkdayNextMonth()).toLocaleString()} Kč`;
+
+        // hide any open menus
+        document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
+        // Výpis historie (posledních 5)
+        const txnList = document.getElementById('txnList');
+        txnList.innerHTML = '';
+        // history list with edit/delete controls
+        displayTransactions.slice().reverse().forEach((t, revIdx) => {
+            const idx = transactions.indexOf(t); // original index in full array
+            const dateStr = t.date ? new Date(t.date).toLocaleDateString() : '';
+            // inline editor if current index matches
+            if (idx === editingIndex) {
+                if (editingType === 'expense') {
+                    txnList.innerHTML += `
+                <div class="transaction">
+                    <div>
+                        <input type="date" id="edit-date" value="${t.date ? t.date.split('T')[0] : ''}">
+                        <input type="text" id="edit-desc" value="${t.desc}">
+                        <input type="number" id="edit-amount" value="${Math.abs(t.amount)}">
+                        <select id="edit-cat">
+                            <option value="Jídlo" ${t.cat==='Jídlo'?'selected':''}>Jídlo 🍕</option>
+                            <option value="Běžné" ${t.cat==='Běžné'?'selected':''}>Běžné 🏠</option>
+                            <option value="Blbosti" ${t.cat==='Blbosti'?'selected':''}>Blbosti 🛍️</option>
+                            <option value="Nadst." ${t.cat==='Nadst.'?'selected':''}>Nadstavba ✨</option>
+                            <option value="Spoření" ${t.cat==='Spoření'?'selected':''}>Spoření 💰</option>
+                        </select>
+                        <button onclick="saveInline(${idx})">Uložit</button>
+                        <button onclick="cancelInline()">Zrušit</button>
+                    </div>
+                </div>`;
+                } else if (editingType === 'income') {
+                    txnList.innerHTML += `
+                <div class="transaction">
+                    
+                    <div>
+                        <input type="date" id="edit-date" value="${t.date ? t.date.split('T')[0] : ''}">
+                        <input type="text" id="edit-desc" value="${t.desc}">
+                        <input type="number" id="edit-amount" value="${Math.abs(t.amount)}">
+                        <button onclick="saveInline(${idx})">Uložit</button>
+                        <button onclick="cancelInline()">Zrušit</button>
+                    </div>
+                </div>`;
+                }
+            } else {
+                txnList.innerHTML += `
+                <div class="transaction">
+                    <div>
+                        <strong>${t.desc}</strong><br><small>${dateStr}</small>
+                    </div>
+                    <div style="color: ${t.amount < 0 ? '#ef4444' : '#10b981'}">
+                        ${Number(t.amount).toLocaleString()} Kč
+                        <span class="menu-container">
+                            <span class="menu-button" onclick="toggleMenu(${idx})">⋮</span>
+                            <div class="menu-options" id="menu-${idx}">
+                                <span onclick="startEdit(${idx}, '${t.amount<0?'expense':'income'}')">✏️ Upravit</span>
+                                <span onclick="deleteTransaction(${idx})">❌ Smazat</span>
+                            </div>
+                        </span>
+                    </div>
+                </div>
+            `;
+            }
+        });
+
+        updateChart(displayTransactions);
+        // persist both data and current filter for current user
+        saveTransactions();
+    }
+
+    function initDateInput() {
+        const dateInput = getDateInput();
+        const today = new Date().toISOString().slice(0,10);
+        if (dateInput) {
+            dateInput.value = today;
+        }
+        const incomeDate = document.getElementById('dateIncome');
+        if (incomeDate) {
+            incomeDate.value = today;
+        }
+    }
+
+    function toggleMenu(i) {
+        const menu = document.getElementById(`menu-${i}`);
+        if (menu) {
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+    }
+
+    // close menus when clicking elsewhere
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.menu-container')) {
+            document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
+        }
+    });
+
+    function addTransaction() {
+        // clear any inline edit state
+        editingIndex = null;
+        editingType = null;
+        const desc = document.getElementById('desc').value;
+        const amount = document.getElementById('amount').value;
+        const cat = document.getElementById('cat').value;
+
+        if(!desc || !amount) return alert("Vyplň vše!");
+
+        const dateVal = document.getElementById('date').value;
+        const record = { desc, amount: -Math.abs(amount), cat, date: dateVal ? dateVal : new Date() };
+        transactions.push(record);
+        saveTransactions();
+        updateUI();
+        
+        initDateInput();
+        document.getElementById('desc').value = '';
+        document.getElementById('amount').value = '';
+    }
+
+    function addIncome() {
+        const desc = document.getElementById('descIncome').value;
+        const amount = document.getElementById('amountIncome').value;
+        const dateVal = document.getElementById('dateIncome')?.value;
+
+        if(!desc || !amount) return alert("Vyplň vše!");
+
+        transactions.push({ desc, amount: Math.abs(amount), cat: 'Příjmy', date: dateVal ? dateVal : new Date() });
+        saveTransactions();
+        updateUI();
+
+        document.getElementById('descIncome').value = '';
+        document.getElementById('amountIncome').value = '';
+        if (document.getElementById('dateIncome')) document.getElementById('dateIncome').value = '';
+    }
+
+    function updateChart(filtered) {
+        // close any open menus when chart redraw occurs
+        document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
+        if (typeof Chart === 'undefined') {
+            console.warn('chart.js not loaded, skipping chart');
+            return;
+        }
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const summary = {};
+        const list = filtered || transactions;
+        list.forEach(t => {
+            // only include expenses in the category breakdown
+            if (t.amount < 0) {
+                summary[t.cat] = (summary[t.cat] || 0) + Math.abs(t.amount);
+            }
+        });
+
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(summary),
+                datasets: [{
+                    data: Object.values(summary),
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+                }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    function deleteTransaction(i) {
+        if(confirm('Smazat tuto transakci?')) {
+            transactions.splice(i,1);
+            saveTransactions();
+            updateUI();
+        }
+    }
+
+    function startEdit(i, type) {
+        // type is 'expense' or 'income'
+        editingIndex = i;
+        editingType = type;
+        updateUI();
+    }
+
+    // utility: find number of days until second business day of next month
+    function daysUntilSecondWorkdayNextMonth() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1; // next month
+        const target = new Date(year, month, 1);
+        let workdays = 0;
+        while (true) {
+            const day = target.getDay(); // 0=Sun,6=Sat
+            if (day !== 0 && day !== 6) {
+                workdays++;
+                if (workdays === 2) break;
+            }
+            target.setDate(target.getDate() + 1);
+        }
+        const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+        return diff > 0 ? diff : 1;
+    }
+
+    async function clearData() { if(confirm("Opravdu smazat vše?")) {
+        transactions = [];
+        currentMonth = 'all';
+        await saveTransactions();
+        // clear any lingering filter for this user
+        localStorage.removeItem('transactionsByMonth');
+        localStorage.removeItem('currentMonth_' + getCurrentUser().username);
+        updateUI();
+    } }
+    function saveInline(i) {
+        const dateVal = document.getElementById('edit-date').value;
+        const desc = document.getElementById('edit-desc').value;
+        const amount = document.getElementById('edit-amount').value;
+        if (!desc || !amount) return alert('Vyplň vše!');
+        if (editingType === 'expense') {
+            const cat = document.getElementById('edit-cat').value;
+            transactions[i] = { desc, amount: -Math.abs(amount), cat, date: dateVal || new Date() };
+        } else {
+            transactions[i] = { desc, amount: Math.abs(amount), cat: 'Příjmy', date: dateVal || new Date() };
+        }
+        saveTransactions();
+        editingIndex = null;
+        editingType = null;
+        updateUI();
+    }
+    function cancelInline() {
+        editingIndex = null;
+        updateUI();
+    }
+
+    function applyStoredTheme() {
+        const pref = localStorage.getItem('darkMode');
+        if (pref === 'true') document.body.classList.add('dark');
+        document.getElementById('darkToggle').checked = pref === 'true';
+    }
+
+    function toggleDarkMode() {
+        const enabled = document.getElementById('darkToggle').checked;
+        if (enabled) document.body.classList.add('dark');
+        else document.body.classList.remove('dark');
+        localStorage.setItem('darkMode', enabled);
+    }
+
+    // first-time setup and always show login
+    ensureAdmin();
+    applyStoredTheme();
+    // forget any stored session so we always start at login screen
+    localStorage.removeItem('currentUser');
+    showLogin();
+</script>
+
+</body>
+</html>
