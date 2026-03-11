@@ -3,295 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance | Supabase</title>
+    <title>Moje Finance | Custom Auth</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; }
-        .dark { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #f9fafb; --border: #334155; --tag-bg: #334155; --hover-bg: #475569; --field-bg: #334155; --field-text: #ffffff; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); transition: background 0.3s; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; }
+        .dark { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #f9fafb; --border: #334155; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
         .container { max-width: 500px; margin: 0 auto; }
-        .header-card { background: var(--primary); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
-        .stats { display: flex; justify-content: space-between; }
-        .stat-val { font-size: 1.5rem; font-weight: bold; }
-        .form-card, .list-card { background: var(--card); padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); }
-        .chart-card { max-width: 300px; margin: 0 auto; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: var(--field-bg); color: var(--text); }
-        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .transaction { position: relative; display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
-        .menu-container { position: relative; display: inline-block; }
-        .menu-button { cursor: pointer; padding: 0 4px; font-weight: bold; }
-        .menu-options { display: none; position: absolute; right: 0; top: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,.1); z-index: 100; }
-        .menu-options span { display: block; padding: 8px 12px; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
-        .menu-options span:hover { background: var(--hover-bg); }
-        .month-chip { display:inline-block; padding:4px 12px; margin:0 4px 4px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.85rem; }
-        .month-chip.selected { background: var(--primary); color: white; }
-        #loader { text-align: center; display: none; margin-bottom: 10px; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
+        input, select, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid var(--border); box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .transaction { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .header { background: var(--primary); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container" id="loginSection">
-    <h2>Přihlášení</h2>
-    <input type="email" id="loginEmail" placeholder="Email (např. admin@admin.cz)">
-    <input type="password" id="loginPass" placeholder="Heslo">
-    <button id="loginBtn" onclick="login()">Přihlásit</button>
-    <p>Nemáte účet? <a href="javascript:void(0)" onclick="showSection('registerSection')">Zaregistrovat</a></p>
-    <p style="font-size: 0.8rem; color: gray;">Tip: Pro admina vytvořte v Supabase účet admin@admin.cz / admin123</p>
+    <div class="card">
+        <h2>Přihlášení</h2>
+        <input type="text" id="loginUser" placeholder="Uživatelské jméno">
+        <input type="password" id="loginPass" placeholder="Heslo">
+        <button onclick="handleLogin()">Vstoupit</button>
+        <p>Nemáte účet? <a href="#" onclick="showSection('registerSection')">Registrace</a></p>
+    </div>
 </div>
 
 <div class="container" id="registerSection" style="display:none">
-    <h2>Registrace</h2>
-    <input type="email" id="regEmail" placeholder="Váš Email">
-    <input type="password" id="regPass" placeholder="Heslo (min. 6 znaků)">
-    <button id="regBtn" onclick="register()">Vytvořit účet</button>
-    <p>Máte účet? <a href="javascript:void(0)" onclick="showSection('loginSection')">Přihlásit</a></p>
+    <div class="card">
+        <h2>Nová registrace</h2>
+        <input type="text" id="regUser" placeholder="Uživatelské jméno">
+        <input type="password" id="regPass" placeholder="Heslo">
+        <button onclick="handleRegister()">Vytvořit účet</button>
+        <p><a href="#" onclick="showSection('loginSection')">Zpět na přihlášení</a></p>
+    </div>
 </div>
 
 <div class="container" id="appSection" style="display:none">
-    <div style="text-align:right; margin-bottom:10px; font-size: 0.8rem;">
-        <span id="currentUserInfo"></span> | <a href="#" onclick="logout()">Odhlásit</a>
+    <div style="text-align:right; margin-bottom: 5px;">
+        <span id="userNameDisplay"></span> | <a href="#" onclick="logout()">Odhlásit</a>
     </div>
     
-    <div class="header-card">
-        <div style="margin-bottom: 5px;">Zůstatek</div>
-        <div class="stat-val" id="totalBalance">0 Kč</div>
-        <hr style="border: none; border-top: 1px solid white; opacity: 0.2; margin: 15px 0;">
-        <div class="stats">
-            <div><small>Na den do výplaty</small><div id="dailyAvg">0 Kč</div></div>
-        </div>
+    <div class="header">
+        <div>Aktuální zůstatek</div>
+        <h1 id="totalBalance">0 Kč</h1>
     </div>
 
-    <div id="loader">Načítání...</div>
-
-    <div class="form-card">
-        <h3 style="margin-top:0">Nová transakce</h3>
+    <div class="card">
+        <h3>Přidat záznam</h3>
         <input type="date" id="txnDate">
-        <input type="text" id="txnDesc" placeholder="Popis (obchod, výplata...)">
-        <input type="number" id="txnAmount" placeholder="Částka (kladná = příjem, záporná = výdaj)">
+        <input type="text" id="txnDesc" placeholder="Popis">
+        <input type="number" id="txnAmount" placeholder="Částka (mínus pro výdaj)">
         <select id="txnCat">
             <option value="Jídlo">Jídlo 🍕</option>
             <option value="Běžné">Běžné 🏠</option>
-            <option value="Blbosti">Blbosti 🛍️</option>
             <option value="Příjem">Příjem 💰</option>
-            <option value="Ostatní">Ostatní ✨</option>
         </select>
-        <button onclick="addTransaction()">Uložit transakci</button>
+        <button onclick="addTransaction()">Uložit</button>
     </div>
 
-    <div class="list-card" id="history">
-        <h3 style="margin-top:0">Historie</h3>
-        <div id="monthChips" style="margin-bottom:10px;"></div>
+    <div class="card">
+        <h3>Historie</h3>
         <div id="txnList"></div>
-    </div>
-
-    <div class="list-card chart-card">
-        <canvas id="myChart"></canvas>
-    </div>
-
-    <div style="text-align:center; margin-top:10px;">
-        <label><input type="checkbox" id="darkToggle" onchange="toggleDarkMode()"> Dark mode</label>
     </div>
 </div>
 
 <script>
-    // --- KONFIGURACE SUPABASE ---
-    const SUPABASE_URL = 'https://tnrtxrxwzwhsiqtahxzy.supabase.co'; 
-    const SUPABASE_KEY = 'sb_publishable_hsQEHlhnq-G2gk7ospOI0g_HuSlwTIC';
+    // DOPLŇTE SVÉ ÚDAJE
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const supabase = libsupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let transactions = [];
-    let currentMonth = 'all';
-    let myChart = null;
+    let currentUser = null;
 
-    // --- AUTENTIZACE ---
-    async function login() {
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPass').value;
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        
-        if (error) return alert('Chyba: ' + error.message);
-        checkUser();
-    }
+    // --- LOGIKA PŘIHLÁŠENÍ (přes tabulku app_users) ---
+    async function handleLogin() {
+        const user = document.getElementById('loginUser').value;
+        const pass = document.getElementById('loginPass').value;
 
-    async function register() {
-        const email = document.getElementById('regEmail').value;
-        const password = document.getElementById('regPass').value;
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        
-        if (error) return alert('Chyba: ' + error.message);
-        alert('Registrace úspěšná! Zkontrolujte email (pokud je vyžadováno potvrzení) nebo se přihlaste.');
-        showSection('loginSection');
-    }
+        const { data, error } = await supabase
+            .from('app_users')
+            .select('*')
+            .eq('username', user)
+            .eq('password', pass)
+            .single();
 
-    async function logout() {
-        await supabase.auth.signOut();
-        checkUser();
-    }
-
-    async function checkUser() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            document.getElementById('currentUserInfo').innerText = user.email;
-            showSection('appSection');
-            initDateInput();
-            loadTransactions();
+        if (error || !data) {
+            alert('Neplatné jméno nebo heslo');
         } else {
+            currentUser = data;
+            sessionStorage.setItem('user', JSON.stringify(data));
+            startApp();
+        }
+    }
+
+    async function handleRegister() {
+        const user = document.getElementById('regUser').value;
+        const pass = document.getElementById('regPass').value;
+
+        const { error } = await supabase
+            .from('app_users')
+            .insert([{ username: user, password: pass }]);
+
+        if (error) {
+            alert('Uživatel již existuje nebo jiná chyba.');
+        } else {
+            alert('Registrace hotova, nyní se přihlaste.');
             showSection('loginSection');
         }
     }
 
-    // --- DATA ---
-    async function loadTransactions() {
-        document.getElementById('loader').style.display = 'block';
+    function startApp() {
+        showSection('appSection');
+        document.getElementById('userNameDisplay').innerText = currentUser.username;
+        document.getElementById('txnDate').value = new Date().toISOString().split('T')[0];
+        loadData();
+    }
+
+    async function loadData() {
         const { data, error } = await supabase
             .from('transactions')
             .select('*')
+            .eq('user_id', currentUser.id)
             .order('date', { ascending: false });
 
-        document.getElementById('loader').style.display = 'none';
-        if (error) return console.error(error);
+        if (error) return;
         
-        transactions = data;
-        updateUI();
+        const list = document.getElementById('txnList');
+        const balanceEl = document.getElementById('totalBalance');
+        list.innerHTML = '';
+        let total = 0;
+
+        data.forEach(t => {
+            total += parseFloat(t.amount);
+            list.innerHTML += `
+                <div class="transaction">
+                    <span>${t.description} (${t.date})</span>
+                    <b style="color:${t.amount < 0 ? 'red' : 'green'}">${t.amount} Kč</b>
+                </div>`;
+        });
+        balanceEl.innerText = total.toLocaleString() + " Kč";
     }
 
     async function addTransaction() {
         const description = document.getElementById('txnDesc').value;
-        const amount = parseFloat(document.getElementById('txnAmount').value);
+        const amount = document.getElementById('txnAmount').value;
         const category = document.getElementById('txnCat').value;
         const date = document.getElementById('txnDate').value;
 
-        if (!description || isNaN(amount)) return alert('Vyplňte popis a částku');
-
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        const { error } = await supabase.from('transactions').insert([
-            { user_id: user.id, description, amount, category, date }
+        await supabase.from('transactions').insert([
+            { user_id: currentUser.id, description, amount, category, date }
         ]);
 
-        if (error) return alert(error.message);
-        
         document.getElementById('txnDesc').value = '';
         document.getElementById('txnAmount').value = '';
-        loadTransactions();
+        loadData();
     }
 
-    async function deleteTransaction(id) {
-        if (!confirm('Opravdu smazat?')) return;
-        const { error } = await supabase.from('transactions').delete().eq('id', id);
-        if (error) alert(error.message);
-        else loadTransactions();
-    }
-
-    // --- UI LOGIKA ---
-    function updateUI() {
-        const txnList = document.getElementById('txnList');
-        const totalDiv = document.getElementById('totalBalance');
-        
-        // Filtrace měsíců
-        let months = [...new Set(transactions.map(t => t.date.slice(0, 7)))].sort().reverse();
-        const monthChipsDiv = document.getElementById('monthChips');
-        monthChipsDiv.innerHTML = '<span class="month-chip '+(currentMonth==='all'?'selected':'')+'" onclick="filterMonth(\'all\')">Vše</span>';
-        months.forEach(m => {
-            monthChipsDiv.innerHTML += `<span class="month-chip ${currentMonth===m?'selected':''}" onclick="filterMonth('${m}')">${m}</span>`;
-        });
-
-        const filtered = currentMonth === 'all' ? transactions : transactions.filter(t => t.date.startsWith(currentMonth));
-
-        // Zůstatek
-        const total = filtered.reduce((acc, t) => acc + parseFloat(t.amount), 0);
-        totalDiv.innerText = `${total.toLocaleString()} Kč`;
-        totalDiv.style.color = total >= 0 ? 'white' : '#fecaca';
-
-        // Výpočet na den (zjednodušeno na 30 dní)
-        document.getElementById('dailyAvg').innerText = `${Math.round(total / 30).toLocaleString()} Kč`;
-
-        // Seznam
-        txnList.innerHTML = '';
-        filtered.forEach(t => {
-            txnList.innerHTML += `
-                <div class="transaction">
-                    <div>
-                        <strong>${t.description}</strong><br><small>${t.category} | ${new Date(t.date).toLocaleDateString()}</small>
-                    </div>
-                    <div style="color: ${t.amount < 0 ? '#ef4444' : '#10b981'}">
-                        ${parseFloat(t.amount).toLocaleString()} Kč
-                        <span class="menu-container">
-                            <span class="menu-button" onclick="toggleMenu('${t.id}')">⋮</span>
-                            <div class="menu-options" id="menu-${t.id}">
-                                <span onclick="deleteTransaction('${t.id}')">❌ Smazat</span>
-                            </div>
-                        </span>
-                    </div>
-                </div>`;
-        });
-
-        updateChart(filtered);
-    }
-
-    function filterMonth(m) {
-        currentMonth = m;
-        updateUI();
-    }
-
-    function toggleMenu(id) {
-        const el = document.getElementById('menu-' + id);
-        el.style.display = el.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function updateChart(data) {
-        const ctx = document.getElementById('myChart').getContext('2d');
-        const summary = {};
-        data.filter(t => t.amount < 0).forEach(t => {
-            summary[t.category] = (summary[t.category] || 0) + Math.abs(t.amount);
-        });
-
-        if (myChart) myChart.destroy();
-        myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(summary),
-                datasets: [{
-                    data: Object.values(summary),
-                    backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-                }]
-            },
-            options: { plugins: { legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text') } } } }
-        });
+    function logout() {
+        sessionStorage.clear();
+        location.reload();
     }
 
     function showSection(id) {
-        ['loginSection', 'registerSection', 'appSection'].forEach(s => {
-            document.getElementById(s).style.display = s === id ? 'block' : 'none';
-        });
+        document.getElementById('loginSection').style.display = id === 'loginSection' ? 'block' : 'none';
+        document.getElementById('registerSection').style.display = id === 'registerSection' ? 'block' : 'none';
+        document.getElementById('appSection').style.display = id === 'appSection' ? 'block' : 'none';
     }
 
-    function initDateInput() {
-        document.getElementById('txnDate').value = new Date().toISOString().split('T')[0];
+    // Auto-login z session
+    const savedUser = sessionStorage.getItem('user');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        startApp();
     }
-
-    function toggleDarkMode() {
-        document.body.classList.toggle('dark');
-        localStorage.setItem('darkMode', document.body.classList.contains('dark'));
-        if(transactions.length > 0) updateUI();
-    }
-
-    // Init
-    if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark');
-        document.getElementById('darkToggle').checked = true;
-    }
-    checkUser();
-
-    // Zavírání menu při kliknutí vedle
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.menu-container')) {
-            document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
-        }
-    });
 </script>
-
 </body>
 </html>
