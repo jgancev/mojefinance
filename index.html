@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance v0.3.4</title>
+    <title>Moje Finance v0.3.5</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; --income: #10b981; --expense: #ef4444; }
@@ -21,13 +21,15 @@
         input, select, button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; background: var(--field-bg); color: var(--field-text); }
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
         
+        /* Tlačítka z verze 0.3.2 */
+        .mode-btn, .settings-btn { width: auto; padding: 6px 12px; font-size: 0.8rem; background: var(--tag-bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+        
         .txn-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; }
         .txn-item.future { opacity: 0.5; font-style: italic; }
         
         .chip { display:inline-block; padding:5px 12px; margin:0 5px 5px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.8rem; border: 1px solid var(--border); color: var(--text); }
         .chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
         
-        .top-bar { max-width: 1300px; margin: 0 auto 15px; display: flex; justify-content: space-between; align-items: center; }
         .edit-box { display: flex; flex-direction: column; gap: 5px; width: 100%; background: var(--hover-bg); padding: 10px; border-radius: 8px; }
         .hidden { display: none !important; }
         .icon-btn { cursor: pointer; opacity: 0.5; margin-left: 10px; font-style: normal; }
@@ -53,12 +55,12 @@
 </div>
 
 <div id="mainSection" class="hidden">
-    <div class="top-bar">
+    <div style="max-width: 1300px; margin: 0 auto 15px; display: flex; justify-content: space-between; align-items: center;">
         <div>
             <strong id="userLabel"></strong>
-            <button class="chip" style="margin-left:10px" onclick="app.showSettings()">⚙️ Nastavení</button>
+            <button class="settings-btn" style="margin-left:10px" onclick="app.showSettings()">⚙️ Nastavení</button>
         </div>
-        <button class="chip" onclick="app.toggleDarkMode()">🌓 DarkMode</button>
+        <button class="mode-btn" onclick="app.toggleDarkMode()">🌓 DarkMode</button>
     </div>
 
     <div class="dashboard-grid">
@@ -99,7 +101,7 @@
                 <div id="dailyAvg" style="font-size: 1.5rem; font-weight: 800;">0 Kč</div>
             </div>
             <div class="card"><canvas id="myChart"></canvas></div>
-            <button class="chip" style="width:100%; background:#64748b; color:white;" onclick="location.reload()">Odhlásit se</button>
+            <button onclick="location.reload()" style="background: #64748b; font-size: 0.8rem; border-radius: 8px; padding: 10px; color: white; border: none; width: 100%; cursor: pointer;">Odhlásit se</button>
         </div>
     </div>
 </div>
@@ -132,7 +134,7 @@
             const u = document.getElementById('loginUser').value.trim();
             const p = document.getElementById('loginPass').value;
             const { data } = await db.from('app_users').select('*').eq('username', u).eq('password', p).maybeSingle();
-            if(!data) return alert("Chyba");
+            if(!data) return alert("Chyba přihlášení");
             this.user = data;
             if(this.user.is_admin) this.showSettings(); else {
                 if(!this.user.custom_categories) this.user.custom_categories = this.defCats;
