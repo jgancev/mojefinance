@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance v0.3.9</title>
+    <title>Moje Finance v0.3.9.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; --income: #10b981; --expense: #ef4444; }
@@ -35,14 +35,14 @@
     </div>
     <div class="card" id="loginBox" style="max-width: 380px; margin: 0 auto;">
         <h2 id="t-loginTitle">Přihlášení</h2>
-        <input type="email" id="loginUser" placeholder="Email">
+        <input type="email" id="loginUser">
         <input type="password" id="loginPass">
         <button onclick="app.login()" id="t-loginBtn">Vstoupit</button>
         <p style="text-align:center; font-size: 0.8rem;"><span id="t-noAcc">Nemáte účet?</span> <a href="#" onclick="app.toggleAuth(true)" id="t-regLink">Registrace</a></p>
     </div>
     <div class="card hidden" id="regBox" style="max-width: 380px; margin: 0 auto;">
         <h2 id="t-regTitle">Registrace</h2>
-        <input type="email" id="regUser" placeholder="Email">
+        <input type="email" id="regUser">
         <input type="password" id="regPass">
         <button onclick="app.register()" id="t-regBtn">Vytvořit účet</button>
         <p style="text-align:center; font-size: 0.8rem;"><span id="t-haveAcc">Máte účet?</span> <a href="#" onclick="app.toggleAuth(false)" id="t-loginLink">Přihlášení</a></p>
@@ -156,7 +156,7 @@
             if (error) return alert(error.message);
             if (data.user) {
                 await db.from('app_users').insert([{ id: data.user.id, username: email.split('@')[0], custom_categories: this.defCats, lang: this.lang, currency: this.curr }]);
-                alert("Účet vytvořen! Pokud se nemůžete přihlásit, zkontrolujte email.");
+                alert("Účet vytvořen!");
                 this.toggleAuth(false);
             }
         },
@@ -174,7 +174,8 @@
         },
 
         async loadTxns() {
-            const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
+            const { data, error } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
+            if (error) console.error("Load Error:", error.message);
             this.txns = data || []; this.updateUI();
         },
 
@@ -212,8 +213,9 @@
             const desc = (isInc ? document.getElementById('incDesc').value : document.getElementById('expDesc').value).trim();
             const amt = parseFloat(isInc ? document.getElementById('incAmt').value : document.getElementById('expAmt').value);
             if(!desc || isNaN(amt)) return;
-            await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: isInc?amt:-amt, category: isInc?(this.lang==='cs'?'Příjem':'Income'):document.getElementById('expCat').value, date: d }]);
-            this.loadTxns();
+            const { error } = await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: isInc?amt:-amt, category: isInc?(this.lang==='cs'?'Příjem':'Income'):document.getElementById('expCat').value, date: d }]);
+            if (error) alert("Chyba RLS: " + error.message);
+            else { this.loadTxns(); if(isInc) document.getElementById('incAmt').value=''; else document.getElementById('expAmt').value=''; }
         },
 
         async delTxn(id) { if(confirm(i18n[this.lang].confirmDel)) { await db.from('transactions').delete().eq('id', id); this.loadTxns(); } },
