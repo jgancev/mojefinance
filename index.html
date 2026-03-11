@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance - Admin</title>
+    <title>Moje Finance v2.4</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; }
@@ -25,17 +25,12 @@
         .mode-btn { width: auto; padding: 6px 14px; margin: 0; background: var(--tag-bg); color: var(--text); font-size: 0.8rem; }
         .settings-btn { background: transparent; color: var(--text); border: 1px solid var(--border); width: auto; padding: 6px 14px; margin: 0; font-size: 0.8rem; }
         
-        .transaction { position: relative; display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
-        .menu-container { position: relative; display: inline-block; }
-        .menu-button { cursor: pointer; padding: 0 4px; font-weight: bold; }
-        .menu-options { display: none; position: absolute; right: 0; top: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,.1); z-index: 100; }
-        .menu-options span { display: block; padding: 8px 12px; cursor: pointer; white-space: nowrap; color: var(--text); }
-        .menu-options span:hover { background: var(--hover-bg); }
-        
+        .transaction { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
         .month-chip { display:inline-block; padding:4px 8px; margin:0 4px 4px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.9rem; color: var(--text); }
         .month-chip.selected { background: var(--primary); color: white; }
         
-        .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .cat-item { display: flex; gap: 5px; margin-bottom: 5px; }
+        .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
         a { color: var(--primary); text-decoration: none; font-weight: bold; }
     </style>
 </head>
@@ -63,11 +58,17 @@
         <button class="mode-btn" onclick="app.toggleDarkMode()">🌓 Mode</button>
     </div>
 
-    <div id="userSettingsCard" class="form-card">
+    <div class="form-card">
         <h3 style="margin-top:0">Můj účet</h3>
         <p>Uživatel: <strong id="stName"></strong></p>
         <button onclick="app.changePassword()" style="background:#64748b">Změnit heslo</button>
-        <button onclick="app.deleteOwnProfile()" style="background:#ef4444; margin-top: 10px;">Smazat můj profil</button>
+        <button id="deleteOwnBtn" onclick="app.deleteOwnProfile()" style="background:#ef4444; margin-top: 10px;">Smazat můj profil</button>
+    </div>
+
+    <div id="categorySettings" class="form-card" style="display:none">
+        <h3 style="margin-top:0">Kategorie výdajů</h3>
+        <div id="catListContainer"></div>
+        <button id="addCatBtn" onclick="app.addCustomCategory()" style="background:transparent; color:var(--primary); border: 1px dashed var(--primary); margin-top:10px">+ Přidat vlastní kategorii</button>
     </div>
 
     <div id="adminPanel" class="list-card" style="display:none">
@@ -103,13 +104,7 @@
         <input type="date" id="date">
         <input type="text" id="desc" placeholder="Obchodník / Položka">
         <input type="number" id="amount" placeholder="Částka (Kč)">
-        <select id="cat">
-            <option value="Jídlo">Jídlo 🍕</option>
-            <option value="Běžné">Běžné 🏠</option>
-            <option value="Blbosti">Blbosti 🛍️</option>
-            <option value="Nadst.">Nadstavba ✨</option>
-            <option value="Spoření">Spoření 💰</option>
-        </select>
+        <select id="catSelect"></select>
         <button onclick="app.addTransaction()">Uložit výdaj</button>
     </div>
 
@@ -142,6 +137,7 @@
         user: null,
         transactions: [],
         currentMonth: 'all',
+        defaultCats: ["Jídlo 🍕", "Běžné 🏠", "Blbosti 🛍️", "Nadstandartní ✨", "Spoření 💰"],
 
         async login() {
             const u = document.getElementById('loginUser').value.trim();
@@ -150,62 +146,107 @@
             if (!data) return alert('Chyba přihlášení.');
             this.user = data;
             
-            this.applyStoredTheme();
-            if (this.user.is_admin) {
-                this.openSettings(); // Admin jde rovnou do nastavení
-            } else {
-                this.initApp(); // Uživatel jde do financí
+            // Inicializace kategorií pokud neexistují
+            if (!this.user.custom_categories || this.user.custom_categories.length === 0) {
+                this.user.custom_categories = this.defaultCats;
             }
+
+            this.applyStoredTheme();
+            if (this.user.is_admin) this.openSettings(); else this.initApp();
         },
 
         async register() {
             const u = document.getElementById('regUser').value.trim();
             const p = document.getElementById('regPass').value;
-            await db.from('app_users').insert([{ username: u, password: p, is_admin: false }]);
-            alert('Hotovo, přihlas se.');
-            this.showSection('loginSection');
+            await db.from('app_users').insert([{ username: u, password: p, is_admin: false, custom_categories: this.defaultCats }]);
+            alert('Hotovo.'); this.showSection('loginSection');
         },
 
         initApp() {
             this.showSection('appSection');
             document.getElementById('currentUserInfo').innerText = `👤 ${this.user.username}`;
+            this.renderCatSelect();
             this.loadTransactions();
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('date').value = today;
             document.getElementById('dateIncome').value = today;
         },
 
+        // --- KATEGORIE ---
+        renderCatSelect() {
+            const sel = document.getElementById('catSelect');
+            sel.innerHTML = this.user.custom_categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        },
+
+        renderCatSettings() {
+            const container = document.getElementById('catListContainer');
+            container.innerHTML = this.user.custom_categories.map((c, i) => `
+                <div class="cat-item">
+                    <input type="text" value="${c}" onchange="app.updateCatName(${i}, this.value)">
+                    ${i >= 5 ? `<button onclick="app.removeCategory(${i})" style="width:auto; background:#ef4444">✕</button>` : ''}
+                </div>
+            `).join('');
+            document.getElementById('addCatBtn').style.display = this.user.custom_categories.length >= 8 ? 'none' : 'block';
+        },
+
+        async updateCatName(index, newVal) {
+            this.user.custom_categories[index] = newVal;
+            await this.saveCategories();
+        },
+
+        async addCustomCategory() {
+            if (this.user.custom_categories.length < 8) {
+                this.user.custom_categories.push("Nová kategorie ✨");
+                await this.saveCategories();
+                this.renderCatSettings();
+            }
+        },
+
+        async removeCategory(index) {
+            this.user.custom_categories.splice(index, 1);
+            await this.saveCategories();
+            this.renderCatSettings();
+        },
+
+        async saveCategories() {
+            await db.from('app_users').update({ custom_categories: this.user.custom_categories }).eq('id', this.user.id);
+            this.renderCatSelect();
+        },
+
+        // --- NASTAVENÍ & ADMIN ---
         openSettings() {
             this.showSection('settingsSection');
             document.getElementById('stName').innerText = this.user.username;
             
             if (this.user.is_admin) {
                 document.getElementById('adminPanel').style.display = 'block';
-                document.getElementById('backToAppDiv').style.display = 'none'; // Admin nemá cestu zpět
+                document.getElementById('categorySettings').style.display = 'none';
+                document.getElementById('backToAppDiv').style.display = 'none';
+                document.getElementById('deleteOwnBtn').style.display = 'none';
                 document.getElementById('settingsTitle').innerText = "Administrace";
                 this.loadAllUsers();
             } else {
                 document.getElementById('adminPanel').style.display = 'none';
-                document.getElementById('backToAppDiv').style.display = 'block'; // Uživatel se může vrátit
+                document.getElementById('categorySettings').style.display = 'block';
+                document.getElementById('backToAppDiv').style.display = 'block';
+                document.getElementById('deleteOwnBtn').style.display = 'block';
                 document.getElementById('settingsTitle').innerText = "Nastavení";
+                this.renderCatSettings();
             }
         },
 
         async loadAllUsers() {
             const { data } = await db.from('app_users').select('*');
             const list = document.getElementById('allUsersList');
-            list.innerHTML = '';
-            data.forEach(u => {
-                list.innerHTML += `
-                    <div class="admin-item">
-                        <span><strong>${u.username}</strong> ${u.is_admin ? '<small>(Admin)</small>' : ''}</span>
-                        ${u.id !== this.user.id ? `<button onclick="app.adminDeleteUser('${u.id}')" style="width:auto; padding:5px 10px; background:#ef4444; font-size:0.7rem">Smazat</button>` : '<em>(Ty)</em>'}
-                    </div>`;
-            });
+            list.innerHTML = data.map(u => `
+                <div class="admin-item">
+                    <span><strong>${u.username}</strong> ${u.is_admin ? '<small>(Admin)</small>' : ''}</span>
+                    ${u.id !== this.user.id ? `<button onclick="app.adminDeleteUser('${u.id}')" style="width:auto; padding:5px 10px; background:#ef4444; font-size:0.7rem">Smazat</button>` : '<em>(Ty)</em>'}
+                </div>`).join('');
         },
 
         async adminDeleteUser(id) {
-            if (confirm("Smazat uživatele a jeho data?")) {
+            if (confirm("Smazat uživatele?")) {
                 await db.from('transactions').delete().eq('user_id', id);
                 await db.from('app_users').delete().eq('id', id);
                 this.loadAllUsers();
@@ -216,19 +257,20 @@
             const newP = prompt("Nové heslo:");
             if (newP) {
                 await db.from('app_users').update({ password: newP }).eq('id', this.user.id);
-                alert("Změněno.");
+                alert("OK");
             }
         },
 
         async deleteOwnProfile() {
-            if (confirm("Smazat svůj profil?")) {
+            if (this.user.is_admin) return;
+            if (confirm("Smazat vše?")) {
                 await db.from('transactions').delete().eq('user_id', this.user.id);
                 await db.from('app_users').delete().eq('id', this.user.id);
                 location.reload();
             }
         },
 
-        // --- Zbytek logiky financí (jen pro uživatele) ---
+        // --- FINANCE ---
         async loadTransactions() {
             const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
             this.transactions = data.map(t => ({ id: t.id, desc: t.description, amount: t.amount, cat: t.category, date: t.date }));
@@ -243,20 +285,18 @@
             let total = displayTx.reduce((acc, curr) => acc + Number(curr.amount), 0);
             totalDiv.innerText = `${total.toLocaleString()} Kč`;
             dailyDiv.innerText = `${Math.round(total / this.daysUntilSecondWorkdayNextMonth()).toLocaleString()} Kč`;
-            txnList.innerHTML = '';
-            displayTx.slice().reverse().forEach((t) => {
-                txnList.innerHTML += `<div class="transaction">
-                    <div><strong>${t.desc}</strong><br><small>${new Date(t.date).toLocaleDateString()}</small></div>
+            txnList.innerHTML = displayTx.slice().reverse().map(t => `
+                <div class="transaction">
+                    <div><strong>${t.desc}</strong><br><small>${new Date(t.date).toLocaleDateString()} • ${t.cat}</small></div>
                     <div style="color: ${t.amount < 0 ? '#ef4444' : '#10b981'}"><strong>${Number(t.amount).toLocaleString()} Kč</strong></div>
-                </div>`;
-            });
+                </div>`).join('');
             this.updateChart(displayTx);
         },
 
         async addTransaction() {
             const desc = document.getElementById('desc').value;
             const amount = document.getElementById('amount').value;
-            const cat = document.getElementById('cat').value;
+            const cat = document.getElementById('catSelect').value;
             const date = document.getElementById('date').value;
             if(!desc || !amount) return;
             await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: -Math.abs(amount), category: cat, date }]);
@@ -281,17 +321,13 @@
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'doughnut',
-                data: {
-                    labels: Object.keys(summary),
-                    datasets: [{ data: Object.values(summary), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }]
-                },
+                data: { labels: Object.keys(summary), datasets: [{ data: Object.values(summary), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'] }] },
                 options: { plugins: { legend: { position: 'bottom', labels: { color: document.body.classList.contains('dark') ? '#f9fafb' : '#1e293b' } } } }
             });
         },
 
         daysUntilSecondWorkdayNextMonth() {
-            const today = new Date();
-            const target = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            const today = new Date(); const target = new Date(today.getFullYear(), today.getMonth() + 1, 1);
             let workdays = 0;
             while (true) {
                 const day = target.getDay();
@@ -305,7 +341,6 @@
         toggleDarkMode() { const isDark = document.body.classList.toggle('dark'); localStorage.setItem('darkMode', isDark); if(this.user && !this.user.is_admin) this.updateUI(); },
         applyStoredTheme() { const isDark = localStorage.getItem('darkMode') === 'true'; document.body.classList.toggle('dark', isDark); }
     };
-
     app.applyStoredTheme();
 </script>
 </body>
