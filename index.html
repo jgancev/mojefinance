@@ -3,158 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance | Debug Edition</title>
+    <title>Moje Finance | Supabase Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --field-bg: #ffffff; --field-text: #1e293b; }
+        .dark { --primary: #1e40af; --bg: #121212; --card: #374151; --text: #f9fafb; --border: #4b5563; --tag-bg: #4b5563; --field-bg: #ffffff; --field-text: #1e293b; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
         .container { max-width: 500px; margin: 0 auto; }
-        .card { background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border); box-sizing: border-box; }
+        .header-card { background: var(--primary); color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px; }
+        .stat-val { font-size: 1.5rem; font-weight: bold; }
+        .form-card, .list-card { background: var(--card); padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; }
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-        #debug-console { background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; border-radius: 8px; margin-top: 20px; max-height: 150px; overflow-y: auto; display: block; }
-        .hidden { display: none !important; }
+        .transaction { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        #debug { background: #000; color: #0f0; padding: 10px; font-size: 10px; border-radius: 8px; margin-top: 20px; font-family: monospace; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="loginSection" class="card">
-        <h2>Přihlášení</h2>
-        <input type="text" id="loginUser" placeholder="Uživatelské jméno">
-        <input type="password" id="loginPass" placeholder="Heslo">
-        <button onclick="login()">Přihlásit</button>
-        <button style="background: #10b981;" onclick="forceLogin()">🚀 Force Login (Test)</button>
-        <div id="status-msg" style="color: red; font-size: 0.8rem; margin-top: 10px;"></div>
-    </div>
-
-    <div id="appSection" class="card hidden">
-        <h2 id="welcomeMsg">Finance</h2>
-        <div id="totalBalance" style="font-size: 2rem; font-weight: bold;">0 Kč</div>
-        <hr>
-        <input type="text" id="desc" placeholder="Popis">
-        <input type="number" id="amount" placeholder="Částka">
-        <button onclick="addTransaction()">Uložit</button>
-        <div id="txnList" style="margin-top: 20px;"></div>
-        <button onclick="location.reload()" style="background: #ef4444; margin-top: 20px;">Odhlásit</button>
-    </div>
-
-    <div id="debug-console">
-        <div>[System] Inicializace...</div>
-    </div>
+<div class="container" id="loginSection">
+    <h2>Přihlášení</h2>
+    <input type="text" id="loginUser" placeholder="Uživatelské jméno">
+    <input type="password" id="loginPass" placeholder="Heslo">
+    <button onclick="window.app.login()">Přihlásit</button>
+    <button style="background: #10b981;" onclick="window.app.forceLogin()">🚀 Force Login (Test)</button>
 </div>
 
-<script>
-    const log = (msg) => {
-        const consoleEl = document.getElementById('debug-console');
-        consoleEl.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-        consoleEl.scrollTop = consoleEl.scrollHeight;
-    };
+<div class="container" id="appSection" style="display:none">
+    <div class="header-card">
+        <div>Zůstatek</div>
+        <div class="stat-val" id="totalBalance">0 Kč</div>
+    </div>
+    <div class="form-card">
+        <input type="text" id="desc" placeholder="Popis">
+        <input type="number" id="amount" placeholder="Částka (mínus pro výdaj)">
+        <button onclick="window.app.addTransaction()">Uložit</button>
+    </div>
+    <div class="list-card" id="txnList"></div>
+    <button onclick="location.reload()" style="background: #ef4444;">Odhlásit</button>
+</div>
 
-    // --- NASTAVENÍ ---
+<div class="container">
+    <div id="debug">Log: Inicializace modulu...</div>
+</div>
+
+<script type="module">
+    // --- IMPORT SUPABASE MODULU ---
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
     const SB_URL = 'https://tnrtxrxwzwhsiqtahxzy.supabase.co';
     const SB_KEY = 'sb_publishable_hsQEHlhnq-G2gk7ospOI0g_HuSlwTIC';
     
-    let supabase;
-    let currentUser = null;
+    const db = createClient(SB_URL, SB_KEY);
+    const debug = document.getElementById('debug');
+    const log = (m) => debug.innerText += "\n" + m;
 
-    window.onload = () => {
-        log("Kontrola Supabase knihovny...");
-        // V různých verzích CDN se objekt jmenuje různě (supabase nebo libsupabase)
-        const clientFactory = window.supabase || window.libsupabase;
-        
-        if (!clientFactory) {
-            log("CHYBA: Knihovna Supabase nebyla načtena! Zkontroluj internet nebo URL scriptu.");
-            document.getElementById('status-msg').innerText = "Knihovna Supabase se nenačetla.";
-            return;
-        }
+    log("Supabase modul načten.");
 
-        try {
-            supabase = clientFactory.createClient(SB_URL, SB_KEY);
-            log("Supabase klient vytvořen.");
-        } catch (e) {
-            log("CHYBA inicializace: " + e.message);
+    // Definujeme funkce do objektu window, aby byly přístupné z HTML
+    window.app = {
+        user: null,
+
+        async login() {
+            const u = document.getElementById('loginUser').value;
+            const p = document.getElementById('loginPass').value;
+            log("Zkouším login: " + u);
+            
+            const { data, error } = await db.from('app_users').select('*').eq('username', u).eq('password', p).maybeSingle();
+            
+            if (error) return log("Chyba DB: " + error.message);
+            if (!data) return alert("Špatné jméno nebo heslo");
+
+            this.user = data;
+            this.start();
+        },
+
+        forceLogin() {
+            log("Vynucený vstup...");
+            this.user = { id: '00000000-0000-0000-0000-000000000000', username: 'TestUser' };
+            this.start();
+        },
+
+        start() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('appSection').style.display = 'block';
+            this.load();
+        },
+
+        async load() {
+            log("Načítám data...");
+            const { data, error } = await db.from('transactions').select('*').eq('user_id', this.user.id);
+            if (error) return log("Chyba načítání: " + error.message);
+            
+            const list = document.getElementById('txnList');
+            list.innerHTML = '';
+            let total = 0;
+            data.forEach(t => {
+                total += parseFloat(t.amount);
+                list.innerHTML += `<div class="transaction"><span>${t.description}</span><b>${t.amount} Kč</b></div>`;
+            });
+            document.getElementById('totalBalance').innerText = total + " Kč";
+            log("Zobrazeno " + data.length + " záznamů.");
+        },
+
+        async addTransaction() {
+            const desc = document.getElementById('desc').value;
+            const amt = document.getElementById('amount').value;
+            log("Ukládám...");
+            
+            const { error } = await db.from('transactions').insert([{
+                user_id: this.user.id,
+                description: desc,
+                amount: parseFloat(amt),
+                category: 'Obecné'
+            }]);
+
+            if (error) log("Chyba uložení: " + error.message);
+            else this.load();
         }
     };
-
-    async function login() {
-        const u = document.getElementById('loginUser').value;
-        const p = document.getElementById('loginPass').value;
-        log(`Pokus o login: ${u}`);
-
-        try {
-            const { data, error } = await supabase.from('app_users').select('*').eq('username', u).eq('password', p).maybeSingle();
-            
-            if (error) {
-                log("DB Chyba: " + error.message);
-                return;
-            }
-            if (!data) {
-                log("Uživatel nenalezen.");
-                alert("Špatné jméno nebo heslo");
-                return;
-            }
-
-            currentUser = data;
-            log("Login úspěšný.");
-            startApp();
-        } catch (e) {
-            log("Kritická chyba: " + e.message);
-        }
-    }
-
-    function forceLogin() {
-        log("Spouštím Force Login...");
-        currentUser = { id: '00000000-0000-0000-0000-000000000000', username: 'TestUser' };
-        startApp();
-    }
-
-    function startApp() {
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('appSection').classList.remove('hidden');
-        document.getElementById('welcomeMsg').innerText = "Ahoj, " + currentUser.username;
-        log("Aplikace spuštěna.");
-        loadData();
-    }
-
-    async function loadData() {
-        log("Načítám transakce...");
-        const { data, error } = await supabase.from('transactions').select('*').eq('user_id', currentUser.id);
-        if (error) {
-            log("Chyba načítání: " + error.message);
-            return;
-        }
-        log(`Načteno ${data.length} záznamů.`);
-        
-        const list = document.getElementById('txnList');
-        list.innerHTML = '';
-        let total = 0;
-        data.forEach(t => {
-            total += parseFloat(t.amount);
-            list.innerHTML += `<div>${t.description}: ${t.amount} Kč</div>`;
-        });
-        document.getElementById('totalBalance').innerText = total + " Kč";
-    }
-
-    async function addTransaction() {
-        const desc = document.getElementById('desc').value;
-        const amt = document.getElementById('amount').value;
-        
-        log("Ukládám novou transakci...");
-        const { error } = await supabase.from('transactions').insert([{
-            user_id: currentUser.id,
-            description: desc,
-            amount: parseFloat(amt),
-            category: 'Test'
-        }]);
-
-        if (error) log("Chyba uložení: " + error.message);
-        else {
-            log("Uloženo OK.");
-            loadData();
-        }
-    }
 </script>
 
 </body>
