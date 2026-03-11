@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance v0.3.3</title>
+    <title>Moje Finance v0.3.4</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; --income: #10b981; --expense: #ef4444; }
@@ -24,27 +24,27 @@
         .txn-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; }
         .txn-item.future { opacity: 0.5; font-style: italic; }
         
-        .chip { display:inline-block; padding:5px 12px; margin:0 5px 5px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.8rem; }
-        .chip.selected { background: var(--primary); color: white; }
+        .chip { display:inline-block; padding:5px 12px; margin:0 5px 5px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.8rem; border: 1px solid var(--border); color: var(--text); }
+        .chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
         
+        .top-bar { max-width: 1300px; margin: 0 auto 15px; display: flex; justify-content: space-between; align-items: center; }
         .edit-box { display: flex; flex-direction: column; gap: 5px; width: 100%; background: var(--hover-bg); padding: 10px; border-radius: 8px; }
         .hidden { display: none !important; }
         .icon-btn { cursor: pointer; opacity: 0.5; margin-left: 10px; font-style: normal; }
-        .icon-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
 
 <div id="authSection" style="max-width: 380px; margin: 80px auto;">
     <div class="card" id="loginBox">
-        <h2 style="margin-top:0">Přihlášení</h2>
+        <h2>Přihlášení</h2>
         <input type="text" id="loginUser" placeholder="Jméno">
         <input type="password" id="loginPass" placeholder="Heslo">
         <button onclick="app.login()">Vstoupit</button>
         <p style="text-align:center; font-size: 0.8rem;">Nemáte účet? <a href="#" onclick="app.toggleAuth(true)">Registrace</a></p>
     </div>
     <div class="card hidden" id="regBox">
-        <h2 style="margin-top:0">Registrace</h2>
+        <h2>Registrace</h2>
         <input type="text" id="regUser" placeholder="Jméno">
         <input type="password" id="regPass" placeholder="Heslo">
         <button onclick="app.register()">Vytvořit účet</button>
@@ -53,9 +53,12 @@
 </div>
 
 <div id="mainSection" class="hidden">
-    <div style="max-width: 1300px; margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: center;">
-        <span id="userLabel" style="font-weight: bold;"></span>
-        <button class="chip" onclick="app.toggleDarkMode()">🌓 Mode</button>
+    <div class="top-bar">
+        <div>
+            <strong id="userLabel"></strong>
+            <button class="chip" style="margin-left:10px" onclick="app.showSettings()">⚙️ Nastavení</button>
+        </div>
+        <button class="chip" onclick="app.toggleDarkMode()">🌓 DarkMode</button>
     </div>
 
     <div class="dashboard-grid">
@@ -96,8 +99,7 @@
                 <div id="dailyAvg" style="font-size: 1.5rem; font-weight: 800;">0 Kč</div>
             </div>
             <div class="card"><canvas id="myChart"></canvas></div>
-            <button class="chip" style="width:100%" onclick="app.showSettings()">⚙️ Nastavení</button>
-            <button class="chip" style="width:100%; margin-top:5px; background:#64748b; color:white;" onclick="location.reload()">Odhlásit se</button>
+            <button class="chip" style="width:100%; background:#64748b; color:white;" onclick="location.reload()">Odhlásit se</button>
         </div>
     </div>
 </div>
@@ -148,7 +150,7 @@
         init() {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
-            document.getElementById('userLabel').innerText = this.user.username;
+            document.getElementById('userLabel').innerText = `👤 ${this.user.username}`;
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('expDate').value = today; document.getElementById('incDate').value = today;
             this.renderCats(); this.loadTxns();
@@ -168,7 +170,6 @@
             document.getElementById('balFuture').innerText = `${balFuture.toLocaleString()} Kč`;
             document.getElementById('dailyAvg').innerText = `${Math.round(balToday / this.calcDays()).toLocaleString()} Kč`;
 
-            // Dynamické taby měsíců
             const months = ['all', ...new Set(this.txns.map(t => t.date.slice(0,7)).sort().reverse())];
             document.getElementById('monthChips').innerHTML = months.map(m => `
                 <span class="chip ${this.curMonth===m?'selected':''}" onclick="app.setMonth('${m}')">${m==='all'?'Vše':m}</span>
@@ -177,10 +178,9 @@
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
             document.getElementById('txnList').innerHTML = filtered.slice().reverse().map(t => {
                 if(this.editingId === t.id) return this.renderEditRow(t);
-                const isFuture = t.date > now;
                 return `
-                <div class="txn-item ${isFuture ? 'future' : ''}">
-                    <div><strong>${t.description}</strong><br><small>${isFuture?'⏳ ':''}${t.date} • ${t.category}</small></div>
+                <div class="txn-item ${t.date > now ? 'future' : ''}">
+                    <div><strong>${t.description}</strong><br><small>${t.date > now ? '⏳ ':''}${t.date} • ${t.category}</small></div>
                     <div style="color:${t.amount>0?'var(--income)':'var(--expense)'}">
                         <strong>${t.amount.toLocaleString()} Kč</strong>
                         <i class="icon-btn" onclick="app.editingId='${t.id}'; app.updateUI();">✏️</i>
@@ -193,27 +193,18 @@
 
         renderEditRow(t) {
             const cats = t.amount > 0 ? ['Příjem'] : this.user.custom_categories;
-            return `
-            <div class="edit-box">
+            return `<div class="edit-box">
                 <input type="date" id="edDate" value="${t.date}">
                 <input type="text" id="edDesc" value="${t.description}">
                 <input type="number" id="edAmt" value="${Math.abs(t.amount)}">
                 <select id="edCat">${cats.map(c=>`<option ${t.category===c?'selected':''}>${c}</option>`).join('')}</select>
-                <div style="display:flex; gap:5px">
-                    <button onclick="app.saveEdit('${t.id}', ${t.amount>0})">Uložit</button>
-                    <button onclick="app.editingId=null; app.updateUI()" style="background:#64748b">Zpět</button>
-                </div>
+                <div style="display:flex; gap:5px"><button onclick="app.saveEdit('${t.id}', ${t.amount>0})">Uložit</button><button onclick="app.editingId=null; app.updateUI()" style="background:#64748b">Zpět</button></div>
             </div>`;
         },
 
         async saveEdit(id, isInc) {
             const amt = document.getElementById('edAmt').value;
-            await db.from('transactions').update({
-                date: document.getElementById('edDate').value,
-                description: document.getElementById('edDesc').value,
-                amount: isInc ? Math.abs(amt) : -Math.abs(amt),
-                category: document.getElementById('edCat').value
-            }).eq('id', id);
+            await db.from('transactions').update({ date: document.getElementById('edDate').value, description: document.getElementById('edDesc').value, amount: isInc ? Math.abs(amt) : -Math.abs(amt), category: document.getElementById('edCat').value }).eq('id', id);
             this.editingId = null; this.loadTxns();
         },
 
@@ -231,15 +222,12 @@
         renderCats() {
             document.getElementById('expCat').innerHTML = this.user.custom_categories.map(c => `<option value="${c}">${c}</option>`).join('');
             document.getElementById('catEditor').innerHTML = this.user.custom_categories.map((c, i) => `
-                <div style="display:flex; gap:5px; margin-bottom:5px">
-                    <input type="text" value="${c}" onchange="app.editCat(${i}, this.value)" style="margin:0">
-                    <button onclick="app.delCat(${i})" style="width:auto; background:var(--expense); margin:0">✕</button>
-                </div>`).join('');
+                <div style="display:flex; gap:5px; margin-bottom:5px"><input type="text" value="${c}" onchange="app.editCat(${i}, this.value)" style="margin:0"><button onclick="app.delCat(${i})" style="width:auto; background:var(--expense); margin:0">✕</button></div>`).join('');
         },
         async editCat(i,v) { this.user.custom_categories[i]=v; await this.saveCats(); },
         async addCat() { if(this.user.custom_categories.length<10){this.user.custom_categories.push("Nová"); await this.saveCats(); this.renderCats();} },
         async delCat(i) { this.user.custom_categories.splice(i,1); await this.saveCats(); this.renderCats(); },
-        async saveCats() { await db.from('app_users').update({custom_categories:this.user.custom_categories}).eq('id', this.user.id); this.renderCats(); },
+        async saveCats() { await db.from('app_users').update({custom_categories:this.user.custom_categories}).eq('id', this.user.id); },
 
         showSettings() {
             document.getElementById('settingsOverlay').classList.remove('hidden');
@@ -252,13 +240,9 @@
         },
         async loadUsers() {
             const {data} = await db.from('app_users').select('*');
-            document.getElementById('adminUserList').innerHTML = data.map(u => `
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px">
-                    <span>${u.username}</span>
-                    ${u.id!==this.user.id?`<button onclick="app.admDel('${u.id}')" style="width:auto; background:red">Smazat</button>`:'(Já)'}
-                </div>`).join('');
+            document.getElementById('adminUserList').innerHTML = data.map(u => `<div style="display:flex; justify-content:space-between; margin-bottom:5px"><span>${u.username}</span>${u.id!==this.user.id?`<button onclick="app.admDel('${u.id}')" style="width:auto; background:red">Smazat</button>`:'(Já)'}</div>`).join('');
         },
-        async admDel(id) { if(confirm("Smazat uživatele?")){ await db.from('transactions').delete().eq('user_id',id); await db.from('app_users').delete().eq('id',id); this.loadUsers();} },
+        async admDel(id) { if(confirm("Smazat?")){ await db.from('transactions').delete().eq('user_id',id); await db.from('app_users').delete().eq('id',id); this.loadUsers();} },
         hideSettings() { document.getElementById('settingsOverlay').classList.add('hidden'); if(!this.user.is_admin) this.updateUI(); },
         toggleAuth(reg) { document.getElementById('loginBox').classList.toggle('hidden', reg); document.getElementById('regBox').classList.toggle('hidden', !reg); },
         setMonth(m) { this.curMonth = m; this.updateUI(); },
