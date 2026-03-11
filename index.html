@@ -18,13 +18,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .chart-card { max-width: 300px; margin: 0 auto; }
 input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: var(--field-bg); color: var(--field-text); }
 button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-.transaction { position: relative; display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.transaction { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .tag { font-size: 0.8rem; padding: 2px 8px; border-radius: 12px; background: var(--tag-bg); color: var(--text); }
-.menu-container { position: relative; display: inline-block; }
-.menu-button { cursor: pointer; padding: 0 4px; }
-.menu-options { display: none; position: absolute; right: 0; top: 100%; background: var(--card); border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,.1); z-index: 100; }
-.menu-options span { display: block; padding: 8px 12px; cursor: pointer; white-space: nowrap; }
-.menu-options span:hover { background: var(--hover-bg); }
 .month-chip { display:inline-block; padding:4px 8px; margin:0 4px 4px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.9rem; color: var(--text); }
 .month-chip.selected { background: var(--primary); color: white; }
 </style>
@@ -35,29 +30,27 @@ button { background: var(--primary); color: white; border: none; font-weight: bo
     <h2>Login / Registrace</h2>
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Heslo">
-    <button onclick="signIn()">Přihlásit</button>
-    <button onclick="signUp()">Zaregistrovat</button>
+    <button onclick="login()">Přihlásit</button>
+    <button onclick="register()">Registrovat</button>
+    <p id="authMsg" style="color:red;"></p>
 </div>
 
 <div class="container" id="appSection" style="display:none">
     <div style="text-align:right; margin-bottom:10px;">
         <span id="currentUserInfo"></span>
+        <button onclick="logout()">Odhlásit</button>
     </div>
 
     <div class="header-card">
-        <div style="margin-bottom: 15px;">Zůstatek</div>
+        <div>Zůstatek</div>
         <div class="stat-val" id="totalBalance">0 Kč</div>
-        <hr style="border: none; border-top: 1px solid var(--border); opacity: 0.2; margin: 15px 0;">
-        <div class="stats">
-            <div><small>Na den</small><div id="dailyAvg">0 Kč</div></div>
-        </div>
     </div>
 
     <div class="form-card">
-        <h3 style="margin-top:0">Výdaje</h3>
+        <h3>Výdaje</h3>
         <input type="date" id="date">
         <input type="text" id="desc" placeholder="Popis">
-        <input type="number" id="amount" placeholder="Částka (Kč)">
+        <input type="number" id="amount" placeholder="Částka">
         <select id="cat">
             <option value="Jídlo">Jídlo 🍕</option>
             <option value="Běžné">Běžné 🏠</option>
@@ -68,148 +61,90 @@ button { background: var(--primary); color: white; border: none; font-weight: bo
         <button onclick="addTransaction()">Uložit</button>
     </div>
 
-    <div class="list-card" id="history">
-        <h3 style="margin-top:0">Historie</h3>
-        <div id="monthChips" style="margin-bottom:10px;"></div>
-        <div id="txnList"></div>
-    </div>
-
     <div class="list-card chart-card">
         <canvas id="myChart"></canvas>
     </div>
 
-    <div style="text-align:center; margin-top:10px;">
-        <label><input type="checkbox" id="darkToggle" onchange="toggleDarkMode()"> Dark mode</label>
-    </div>
-
-    <button onclick="logout()" style="background:#ef4444; margin-top:10px;">Odhlásit</button>
+    <div id="txnList"></div>
 </div>
 
-<script type="text/javascript">
-const supabaseUrl = 'https://tnrtxrxwzwhsiqtahxzy.supabase.co';
-const supabaseKey = 'sb_publishable_hsQEHlhnq-G2gk7ospOI0g_HuSlwTIC';
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+<script>
+const SUPABASE_URL = 'https://tnrtxrxwzwhsiqtahxzy.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_hsQEHlhnq-G2gk7ospOI0g_HuSlwTIC';
+const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let transactions = [];
-let currentMonth = 'all';
 let myChart;
 
-async function signIn() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return alert(error.message);
-    afterLogin();
-}
-
-async function signUp() {
+async function register() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return alert(error.message);
+    if (error) { document.getElementById('authMsg').innerText = error.message; return; }
     alert('Registrace proběhla, potvrď email.');
+}
+
+async function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { document.getElementById('authMsg').innerText = error.message; return; }
+    await loadTransactions();
+    showApp();
 }
 
 async function logout() {
     await supabase.auth.signOut();
-    document.getElementById('authSection').style.display = 'block';
     document.getElementById('appSection').style.display = 'none';
+    document.getElementById('authSection').style.display = 'block';
 }
 
-async function afterLogin() {
-    const user = supabase.auth.getUser().data.user;
-    document.getElementById('currentUserInfo').innerText = user.email;
+function showApp() {
     document.getElementById('authSection').style.display = 'none';
     document.getElementById('appSection').style.display = 'block';
-    await loadTransactions();
+    const user = supabase.auth.getUser();
+    document.getElementById('currentUserInfo').innerText = user?.email || '';
 }
 
-function getMonth(date) {
-    if (!date) return null;
-    const d = new Date(date);
-    if (isNaN(d)) return null;
-    return d.toISOString().slice(0,7);
-}
-
-function formatMonthLabel(m) {
-    const [y,mo] = m.split('-');
-    return `${mo}/${y}`;
+async function addTransaction() {
+    const date = document.getElementById('date').value;
+    const desc = document.getElementById('desc').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+    const cat = document.getElementById('cat').value;
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return alert('Nepřihlášený!');
+    const { data, error } = await supabase.from('transactions').insert([{ 
+        user_id: user.id, date, description: desc, category: cat, amount
+    }]);
+    if (error) { alert(error.message); return; }
+    loadTransactions();
 }
 
 async function loadTransactions() {
-    const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('date', { ascending: false });
-    if (error) return console.error(error);
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return;
+    const { data, error } = await supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false });
+    if (error) { console.error(error); return; }
     transactions = data || [];
     updateUI();
 }
 
-async function addTransaction() {
-    const desc = document.getElementById('desc').value;
-    const amount = parseFloat(document.getElementById('amount').value);
-    const cat = document.getElementById('cat').value;
-    const date = document.getElementById('date').value || new Date().toISOString();
-
-    if (!desc || !amount) return alert("Vyplň vše!");
-    
-    const user = (await supabase.auth.getUser()).data.user;
-    const { data, error } = await supabase.from('transactions').insert([{
-        user_id: user.id,
-        desc,
-        amount: -Math.abs(amount),
-        cat,
-        date
-    }]);
-    if (error) return alert(error.message);
-    document.getElementById('desc').value = '';
-    document.getElementById('amount').value = '';
-    await loadTransactions();
-}
-
 function updateUI() {
-    const totalDiv = document.getElementById('totalBalance');
-    const dailyDiv = document.getElementById('dailyAvg');
     const txnList = document.getElementById('txnList');
+    txnList.innerHTML = transactions.map(t => `<div class="transaction">
+        <div><strong>${t.description}</strong> (${t.date})</div>
+        <div style="color:${t.amount<0?'#ef4444':'#10b981'}">${t.amount} Kč</div>
+    </div>`).join('');
 
-    let displayTransactions = transactions;
-    let total = displayTransactions.reduce((acc, t) => acc + Number(t.amount), 0);
-    totalDiv.innerText = `${total.toLocaleString()} Kč`;
-    dailyDiv.innerText = `${Math.round(total / 30).toLocaleString()} Kč`; // jednoduchý průměr na měsíc
+    const total = transactions.reduce((a,b)=>a+b.amount,0);
+    document.getElementById('totalBalance').innerText = total.toLocaleString() + ' Kč';
 
-    txnList.innerHTML = '';
-    displayTransactions.forEach((t, idx) => {
-        txnList.innerHTML += `
-        <div class="transaction">
-            <div><strong>${t.desc}</strong><br><small>${new Date(t.date).toLocaleDateString()}</small></div>
-            <div style="color:${t.amount<0?'#ef4444':'#10b981'}">${t.amount.toLocaleString()} Kč</div>
-        </div>`;
-    });
-
-    updateChart(displayTransactions);
-}
-
-function updateChart(data) {
+    // chart
     const summary = {};
-    data.forEach(t => { if (t.amount<0) summary[t.cat]=(summary[t.cat]||0)+Math.abs(t.amount); });
-
+    transactions.forEach(t => { if (t.amount < 0) summary[t.category] = (summary[t.category]||0)+Math.abs(t.amount); });
     const ctx = document.getElementById('myChart').getContext('2d');
     if (myChart) myChart.destroy();
-    myChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(summary),
-            datasets: [{ data:Object.values(summary), backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'] }]
-        },
-        options: { plugins:{ legend:{ position:'bottom' } } }
-    });
-}
-
-function toggleDarkMode() {
-    const enabled = document.getElementById('darkToggle').checked;
-    if (enabled) document.body.classList.add('dark');
-    else document.body.classList.remove('dark');
+    myChart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(summary), datasets: [{ data: Object.values(summary), backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'] }] }, options:{plugins:{legend:{position:'bottom'}}} });
 }
 </script>
 
