@@ -3,17 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance v0.3.8</title>
+    <title>Moje Finance v0.3.9</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; --income: #10b981; --expense: #ef4444; }
-        
-        /* Dark Mode (v0.3.2 style colors) */
         .dark { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #f9fafb; --border: #334155; --tag-bg: #334155; --hover-bg: #4b5563; --field-bg: #ffffff; --field-text: #1e293b; }
-        
-        /* AMOLED Mode */
         .amoled { --primary: #3b82f6; --bg: #000000; --card: #121212; --text: #ffffff; --border: #222222; --tag-bg: #1a1a1a; --hover-bg: #333333; --field-bg: #ffffff; --field-text: #1e293b; }
-        
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); transition: background 0.2s; }
         .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 1300px; margin: 0 auto; }
         @media (min-width: 1024px) { .dashboard-grid { grid-template-columns: 320px 1fr 320px; } }
@@ -40,14 +35,14 @@
     </div>
     <div class="card" id="loginBox" style="max-width: 380px; margin: 0 auto;">
         <h2 id="t-loginTitle">Přihlášení</h2>
-        <input type="text" id="loginUser">
+        <input type="email" id="loginUser" placeholder="Email">
         <input type="password" id="loginPass">
         <button onclick="app.login()" id="t-loginBtn">Vstoupit</button>
         <p style="text-align:center; font-size: 0.8rem;"><span id="t-noAcc">Nemáte účet?</span> <a href="#" onclick="app.toggleAuth(true)" id="t-regLink">Registrace</a></p>
     </div>
     <div class="card hidden" id="regBox" style="max-width: 380px; margin: 0 auto;">
         <h2 id="t-regTitle">Registrace</h2>
-        <input type="text" id="regUser">
+        <input type="email" id="regUser" placeholder="Email">
         <input type="password" id="regPass">
         <button onclick="app.register()" id="t-regBtn">Vytvořit účet</button>
         <p style="text-align:center; font-size: 0.8rem;"><span id="t-haveAcc">Máte účet?</span> <a href="#" onclick="app.toggleAuth(false)" id="t-loginLink">Přihlášení</a></p>
@@ -62,7 +57,6 @@
         </div>
         <button class="mode-btn" onclick="app.cycleTheme()" id="themeBtn">🌓 Mode: Light</button>
     </div>
-
     <div class="dashboard-grid">
         <div class="card header-card">
             <div class="stat-box"><div id="t-onAccount">Na účtu</div><div class="stat-val" id="balToday">0</div></div>
@@ -107,27 +101,10 @@
     <div class="card" style="max-width: 450px; width: 90%;">
         <h2 id="t-stTitle">Nastavení</h2>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-            <div>
-                <label style="font-size:0.8rem" id="t-stLang">Jazyk</label>
-                <select id="stLang" onchange="app.updatePref('lang', this.value)">
-                    <option value="cs">Čeština</option>
-                    <option value="en">English</option>
-                </select>
-            </div>
-            <div>
-                <label style="font-size:0.8rem" id="t-stCurr">Měna</label>
-                <select id="stCurr" onchange="app.updatePref('curr', this.value)">
-                    <option value="Kč">CZK (Kč)</option>
-                    <option value="€">EUR (€)</option>
-                    <option value="$">USD ($)</option>
-                </select>
-            </div>
+            <div><label style="font-size:0.8rem" id="t-stLang">Jazyk</label><select id="stLang" onchange="app.updatePref('lang', this.value)"><option value="cs">Čeština</option><option value="en">English</option></select></div>
+            <div><label style="font-size:0.8rem" id="t-stCurr">Měna</label><select id="stCurr" onchange="app.updatePref('curr', this.value)"><option value="Kč">CZK (Kč)</option><option value="€">EUR (€)</option><option value="$">USD ($)</option></select></div>
         </div>
-        <div id="userOnly">
-            <h4 id="t-stCats">Moje kategorie</h4>
-            <div id="catEditor"></div>
-            <button onclick="app.addCat()">+ <span id="t-add">Přidat</span></button>
-        </div>
+        <div id="userOnly"><h4 id="t-stCats">Moje kategorie</h4><div id="catEditor"></div><button onclick="app.addCat()">+ <span id="t-add">Přidat</span></button></div>
         <button onclick="app.hideSettings()" style="margin-top:20px; background:var(--text)" id="t-close">Zavřít</button>
     </div>
 </div>
@@ -138,70 +115,59 @@
     let chart = null;
 
     const i18n = {
-        cs: {
-            loginTitle: "Přihlášení", loginBtn: "Vstoupit", noAcc: "Nemáte účet?", regLink: "Registrace",
-            regTitle: "Registrace", regBtn: "Vytvořit účet", haveAcc: "Máte účet?", loginLink: "Přihlášení",
-            settings: "Nastavení", onAccount: "Na účtu", outlook: "Výhled", expenses: "Výdaje", income: "Příjmy",
-            history: "Historie", dailyLimit: "Denní limit do výplaty:", logout: "Odhlásit se", stTitle: "Nastavení",
-            stLang: "Jazyk", stCurr: "Měna", stCats: "Moje kategorie (max 10)", add: "Přidat", close: "Zavřít",
-            save: "Uložit", back: "Zpět", placeholderExp: "Obchodník / Položka", placeholderInc: "Popis příjmu",
-            all: "Vše", confirmDel: "Smazat?", userPH: "Jméno", passPH: "Heslo",
-            themeLight: "Světlý", themeDark: "Tmavý", themeAmoled: "AMOLED"
-        },
-        en: {
-            loginTitle: "Login", loginBtn: "Enter", noAcc: "No account?", regLink: "Sign up",
-            regTitle: "Sign up", regBtn: "Create account", haveAcc: "Have an account?", loginLink: "Login",
-            settings: "Settings", onAccount: "Balance", outlook: "Outlook", expenses: "Expenses", income: "Income",
-            history: "History", dailyLimit: "Daily limit until payday:", logout: "Logout", stTitle: "Settings",
-            stLang: "Language", stCurr: "Currency", stCats: "My Categories (max 10)", add: "Add", close: "Close",
-            save: "Save", back: "Back", placeholderExp: "Merchant / Item", placeholderInc: "Income description",
-            all: "All", confirmDel: "Delete?", userPH: "Username", passPH: "Password",
-            themeLight: "Light", themeDark: "Dark", themeAmoled: "AMOLED"
-        }
+        cs: { loginTitle: "Přihlášení", loginBtn: "Vstoupit", noAcc: "Nemáte účet?", regLink: "Registrace", regTitle: "Registrace", regBtn: "Vytvořit účet", haveAcc: "Máte účet?", loginLink: "Přihlášení", settings: "Nastavení", onAccount: "Na účtu", outlook: "Výhled", expenses: "Výdaje", income: "Příjmy", history: "Historie", dailyLimit: "Denní limit do výplaty:", logout: "Odhlásit se", stTitle: "Nastavení", stLang: "Jazyk", stCurr: "Měna", stCats: "Moje kategorie (max 10)", add: "Přidat", close: "Zavřít", save: "Uložit", back: "Zpět", placeholderExp: "Obchodník / Položka", placeholderInc: "Popis příjmu", all: "Vše", confirmDel: "Smazat?", userPH: "Email", passPH: "Heslo", themeLight: "Světlý", themeDark: "Tmavý", themeAmoled: "AMOLED" },
+        en: { loginTitle: "Login", loginBtn: "Enter", noAcc: "No account?", regLink: "Sign up", regTitle: "Sign up", regBtn: "Create account", haveAcc: "Have an account?", loginLink: "Login", settings: "Settings", onAccount: "Balance", outlook: "Outlook", expenses: "Expenses", income: "Income", history: "History", dailyLimit: "Daily limit until payday:", logout: "Logout", stTitle: "Settings", stLang: "Language", stCurr: "Currency", stCats: "My Categories (max 10)", add: "Add", close: "Close", save: "Save", back: "Back", placeholderExp: "Merchant / Item", placeholderInc: "Income description", all: "All", confirmDel: "Delete?", userPH: "Email", passPH: "Password", themeLight: "Light", themeDark: "Dark", themeAmoled: "AMOLED" }
     };
 
     window.app = {
-        user: null, txns: [], curMonth: 'all', lang: localStorage.getItem('lang') || 'cs', curr: 'Kč',
-        theme: localStorage.getItem('theme') || 'light',
+        user: null, txns: [], curMonth: 'all', lang: localStorage.getItem('lang') || 'cs', curr: 'Kč', theme: localStorage.getItem('theme') || 'light',
         defCats: ["Jídlo 🍕", "Běžné 🏠", "Blbosti 🛍️", "Nadstandartní ✨", "Spoření 💰"],
 
         async start() {
-            this.applyLang();
-            this.applyTheme();
-            const savedUid = localStorage.getItem('uid');
-            if (savedUid) {
-                const { data } = await db.from('app_users').select('*').eq('id', savedUid).maybeSingle();
-                if (data) { this.user = data; this.lang = data.lang || this.lang; this.curr = data.currency || this.curr; this.init(); return; }
-            }
-            document.getElementById('authSection').classList.remove('hidden');
+            this.applyLang(); this.applyTheme();
+            const { data: { session } } = await db.auth.getSession();
+            if (session) { await this.handleAuth(session.user); } else { document.getElementById('authSection').classList.remove('hidden'); }
         },
 
-        async login() {
-            const u = document.getElementById('loginUser').value.trim();
-            const p = document.getElementById('loginPass').value;
-            const { data } = await db.from('app_users').select('*').eq('username', u).eq('password', p).maybeSingle();
-            if(!data) return alert("Error");
-            this.user = data;
-            localStorage.setItem('uid', data.id);
-            this.lang = data.lang || this.lang;
-            this.curr = data.currency || this.curr;
+        async handleAuth(authUser) {
+            this.user = authUser;
+            const { data: profile } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+            if (profile) {
+                this.lang = profile.lang || this.lang; this.curr = profile.currency || this.curr;
+                this.user.custom_categories = profile.custom_categories || this.defCats;
+            } else {
+                this.user.custom_categories = this.defCats;
+            }
             this.init();
         },
 
-        logout() { localStorage.removeItem('uid'); location.reload(); },
+        async login() {
+            const email = document.getElementById('loginUser').value.trim();
+            const password = document.getElementById('loginPass').value;
+            const { data, error } = await db.auth.signInWithPassword({ email, password });
+            if (error) return alert(error.message);
+            await this.handleAuth(data.user);
+        },
 
         async register() {
-            const u = document.getElementById('regUser').value.trim();
-            const p = document.getElementById('regPass').value;
-            await db.from('app_users').insert([{ username:u, password:p, is_admin:false, custom_categories:this.defCats, lang:this.lang, currency:this.curr }]);
-            this.toggleAuth(false);
+            const email = document.getElementById('regUser').value.trim();
+            const password = document.getElementById('regPass').value;
+            const { data, error } = await db.auth.signUp({ email, password });
+            if (error) return alert(error.message);
+            if (data.user) {
+                await db.from('app_users').insert([{ id: data.user.id, username: email.split('@')[0], custom_categories: this.defCats, lang: this.lang, currency: this.curr }]);
+                alert("Účet vytvořen! Pokud se nemůžete přihlásit, zkontrolujte email.");
+                this.toggleAuth(false);
+            }
         },
+
+        async logout() { await db.auth.signOut(); location.reload(); },
 
         init() {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
             this.applyLang();
-            document.getElementById('userLabel').innerText = `👤 ${this.user.username}`;
+            document.getElementById('userLabel').innerText = `👤 ${this.user.email}`;
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('expDate').value = today; document.getElementById('incDate').value = today;
             this.renderCats(); this.loadTxns();
@@ -209,8 +175,7 @@
 
         async loadTxns() {
             const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
-            this.txns = data || [];
-            this.updateUI();
+            this.txns = data || []; this.updateUI();
         },
 
         updateUI() {
@@ -244,10 +209,10 @@
 
         async saveTxn(isInc) {
             const d = isInc ? document.getElementById('incDate').value : document.getElementById('expDate').value;
-            const desc = isInc ? document.getElementById('incDesc').value : document.getElementById('expDesc').value;
-            const amt = isInc ? document.getElementById('incAmt').value : document.getElementById('expAmt').value;
-            if(!desc || !amt) return;
-            await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: isInc?Math.abs(amt):-Math.abs(amt), category: isInc?(this.lang==='cs'?'Příjem':'Income'):document.getElementById('expCat').value, date: d }]);
+            const desc = (isInc ? document.getElementById('incDesc').value : document.getElementById('expDesc').value).trim();
+            const amt = parseFloat(isInc ? document.getElementById('incAmt').value : document.getElementById('expAmt').value);
+            if(!desc || isNaN(amt)) return;
+            await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: isInc?amt:-amt, category: isInc?(this.lang==='cs'?'Příjem':'Income'):document.getElementById('expCat').value, date: d }]);
             this.loadTxns();
         },
 
@@ -304,8 +269,7 @@
             this.updateThemeBtn();
         },
         updateThemeBtn() {
-            const btn = document.getElementById('themeBtn');
-            if (!btn) return;
+            const btn = document.getElementById('themeBtn'); if (!btn) return;
             const l = i18n[this.lang];
             const name = this.theme === 'light' ? l.themeLight : (this.theme === 'dark' ? l.themeDark : l.themeAmoled);
             btn.innerText = `🌓 Mode: ${name}`;
