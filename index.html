@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance</title>
+    <title>Moje Finance - Admin</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; }
@@ -13,7 +13,6 @@
         .container { max-width: 500px; margin: 0 auto; }
         
         .header-card { background: var(--primary); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
-        .stats { display: flex; justify-content: space-between; }
         .stat-val { font-size: 1.5rem; font-weight: bold; }
         
         .form-card, .list-card { background: var(--card); padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); border: 1px solid var(--border); }
@@ -23,8 +22,8 @@
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
         button:hover { opacity: 0.9; }
         
-        /* Modern Toggle Style */
-        .mode-btn { width: auto; padding: 6px 14px; margin: 0; background: var(--tag-bg); color: var(--text); font-size: 0.9rem; }
+        .mode-btn { width: auto; padding: 6px 14px; margin: 0; background: var(--tag-bg); color: var(--text); font-size: 0.8rem; }
+        .settings-btn { background: transparent; color: var(--text); border: 1px solid var(--border); width: auto; padding: 6px 14px; margin: 0; font-size: 0.8rem; }
         
         .transaction { position: relative; display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
         .menu-container { position: relative; display: inline-block; }
@@ -36,6 +35,7 @@
         .month-chip { display:inline-block; padding:4px 8px; margin:0 4px 4px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.9rem; color: var(--text); }
         .month-chip.selected { background: var(--primary); color: white; }
         
+        .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         a { color: var(--primary); text-decoration: none; font-weight: bold; }
     </style>
 </head>
@@ -57,9 +57,37 @@
     <p style="text-align:center">Máte účet? <a href="javascript:void(0)" onclick="app.showSection('loginSection')">Přihlásit</a></p>
 </div>
 
+<div class="container" id="settingsSection" style="display:none">
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 id="settingsTitle" style="margin:0">Nastavení</h2>
+        <button class="mode-btn" onclick="app.toggleDarkMode()">🌓 Mode</button>
+    </div>
+
+    <div id="userSettingsCard" class="form-card">
+        <h3 style="margin-top:0">Můj účet</h3>
+        <p>Uživatel: <strong id="stName"></strong></p>
+        <button onclick="app.changePassword()" style="background:#64748b">Změnit heslo</button>
+        <button onclick="app.deleteOwnProfile()" style="background:#ef4444; margin-top: 10px;">Smazat můj profil</button>
+    </div>
+
+    <div id="adminPanel" class="list-card" style="display:none">
+        <h3 style="margin-top:0; color: var(--primary)">Správa uživatelů</h3>
+        <div id="allUsersList"></div>
+    </div>
+
+    <div id="backToAppDiv" style="display:none; margin-bottom: 20px;">
+        <button class="settings-btn" onclick="app.showSection('appSection')">← Zpět do financí</button>
+    </div>
+
+    <button onclick="location.reload()" style="background: #ef4444;">Odhlásit se</button>
+</div>
+
 <div class="container" id="appSection" style="display:none">
     <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <span id="currentUserInfo" style="font-weight: bold; font-size: 0.9rem;"></span>
+        <div>
+            <span id="currentUserInfo" style="font-weight: bold; font-size: 0.9rem;"></span>
+            <button class="settings-btn" style="margin-left: 5px;" onclick="app.openSettings()">⚙️ Nastavení</button>
+        </div>
         <button class="mode-btn" onclick="app.toggleDarkMode()">🌓 Mode</button>
     </div>
 
@@ -67,12 +95,10 @@
         <div style="margin-bottom: 5px; opacity: 0.8; font-size: 0.9rem;">AKTUÁLNÍ ZŮSTATEK</div>
         <div class="stat-val" id="totalBalance">0 Kč</div>
         <hr style="border: none; border-top: 1px solid white; opacity: 0.2; margin: 15px 0;">
-        <div class="stats">
-            <div><small>Na den do výplaty</small><div id="dailyAvg" style="font-weight: bold;">0 Kč</div></div>
-        </div>
+        <div><small>Na den do výplaty</small><div id="dailyAvg" style="font-weight: bold;">0 Kč</div></div>
     </div>
 
-    <div class="form-card" id="expenseForm">
+    <div class="form-card">
         <h3 style="margin-top:0">Výdaje</h3>
         <input type="date" id="date">
         <input type="text" id="desc" placeholder="Obchodník / Položka">
@@ -81,13 +107,13 @@
             <option value="Jídlo">Jídlo 🍕</option>
             <option value="Běžné">Běžné 🏠</option>
             <option value="Blbosti">Blbosti 🛍️</option>
-            <option value="Nadst.">Nadstandartní ✨</option>
+            <option value="Nadst.">Nadstavba ✨</option>
             <option value="Spoření">Spoření 💰</option>
         </select>
         <button onclick="app.addTransaction()">Uložit výdaj</button>
     </div>
 
-    <div class="list-card" id="history">
+    <div class="list-card">
         <h3 style="margin-top:0">Historie</h3>
         <div id="monthChips" style="margin-bottom:10px;"></div>
         <div id="txnList"></div>
@@ -101,13 +127,9 @@
         <button onclick="app.addIncome()" style="background: #10b981;">Uložit příjem</button>
     </div>
 
-    <button onclick="app.clearData()" style="background: transparent; color: #ef4444; font-size: 0.7rem; border: none; text-decoration: underline;">Smazat všechna data uživatele</button>
-
     <div class="list-card chart-card">
         <canvas id="myChart"></canvas>
     </div>
-
-    <button onclick="location.reload()" style="background: #ef4444; margin-top: 20px; margin-bottom: 50px;">Odhlásit se</button>
 </div>
 
 <script type="module">
@@ -120,7 +142,6 @@
         user: null,
         transactions: [],
         currentMonth: 'all',
-        editingIndex: null,
 
         async login() {
             const u = document.getElementById('loginUser').value.trim();
@@ -128,28 +149,86 @@
             const { data } = await db.from('app_users').select('*').eq('username', u).eq('password', p).maybeSingle();
             if (!data) return alert('Chyba přihlášení.');
             this.user = data;
-            this.initApp();
+            
+            this.applyStoredTheme();
+            if (this.user.is_admin) {
+                this.openSettings(); // Admin jde rovnou do nastavení
+            } else {
+                this.initApp(); // Uživatel jde do financí
+            }
         },
 
         async register() {
             const u = document.getElementById('regUser').value.trim();
             const p = document.getElementById('regPass').value;
-            const { error } = await db.from('app_users').insert([{ username: u, password: p }]);
-            if (error) return alert('Uživatel už existuje.');
-            alert('Účet vytvořen. Nyní se přihlaste.');
+            await db.from('app_users').insert([{ username: u, password: p, is_admin: false }]);
+            alert('Hotovo, přihlas se.');
             this.showSection('loginSection');
         },
 
         initApp() {
             this.showSection('appSection');
             document.getElementById('currentUserInfo').innerText = `👤 ${this.user.username}`;
+            this.loadTransactions();
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('date').value = today;
             document.getElementById('dateIncome').value = today;
-            this.applyStoredTheme();
-            this.loadTransactions();
         },
 
+        openSettings() {
+            this.showSection('settingsSection');
+            document.getElementById('stName').innerText = this.user.username;
+            
+            if (this.user.is_admin) {
+                document.getElementById('adminPanel').style.display = 'block';
+                document.getElementById('backToAppDiv').style.display = 'none'; // Admin nemá cestu zpět
+                document.getElementById('settingsTitle').innerText = "Administrace";
+                this.loadAllUsers();
+            } else {
+                document.getElementById('adminPanel').style.display = 'none';
+                document.getElementById('backToAppDiv').style.display = 'block'; // Uživatel se může vrátit
+                document.getElementById('settingsTitle').innerText = "Nastavení";
+            }
+        },
+
+        async loadAllUsers() {
+            const { data } = await db.from('app_users').select('*');
+            const list = document.getElementById('allUsersList');
+            list.innerHTML = '';
+            data.forEach(u => {
+                list.innerHTML += `
+                    <div class="admin-item">
+                        <span><strong>${u.username}</strong> ${u.is_admin ? '<small>(Admin)</small>' : ''}</span>
+                        ${u.id !== this.user.id ? `<button onclick="app.adminDeleteUser('${u.id}')" style="width:auto; padding:5px 10px; background:#ef4444; font-size:0.7rem">Smazat</button>` : '<em>(Ty)</em>'}
+                    </div>`;
+            });
+        },
+
+        async adminDeleteUser(id) {
+            if (confirm("Smazat uživatele a jeho data?")) {
+                await db.from('transactions').delete().eq('user_id', id);
+                await db.from('app_users').delete().eq('id', id);
+                this.loadAllUsers();
+            }
+        },
+
+        async changePassword() {
+            const newP = prompt("Nové heslo:");
+            if (newP) {
+                await db.from('app_users').update({ password: newP }).eq('id', this.user.id);
+                alert("Změněno.");
+            }
+        },
+
+        async deleteOwnProfile() {
+            if (confirm("Smazat svůj profil?")) {
+                await db.from('transactions').delete().eq('user_id', this.user.id);
+                await db.from('app_users').delete().eq('id', this.user.id);
+                location.reload();
+            }
+        },
+
+        // --- Zbytek logiky financí (jen pro uživatele) ---
         async loadTransactions() {
             const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
             this.transactions = data.map(t => ({ id: t.id, desc: t.description, amount: t.amount, cat: t.category, date: t.date }));
@@ -160,61 +239,16 @@
             const txnList = document.getElementById('txnList');
             const totalDiv = document.getElementById('totalBalance');
             const dailyDiv = document.getElementById('dailyAvg');
-
-            let months = [...new Set(this.transactions.map(t => t.date.slice(0,7)).filter(m => m))];
-            months.sort((a,b) => b.localeCompare(a));
-            months.unshift('all');
-            
-            const monthChipsDiv = document.getElementById('monthChips');
-            monthChipsDiv.innerHTML = '';
-            months.forEach(m => {
-                const label = m === 'all' ? 'Vše' : m.split('-')[1] + '/' + m.split('-')[0];
-                monthChipsDiv.innerHTML += `<span class="month-chip ${m===this.currentMonth?'selected':''}" onclick="app.selectMonth('${m}')">${label}</span>`;
-            });
-
             let displayTx = this.currentMonth === 'all' ? this.transactions : this.transactions.filter(t => t.date.slice(0,7) === this.currentMonth);
-
             let total = displayTx.reduce((acc, curr) => acc + Number(curr.amount), 0);
             totalDiv.innerText = `${total.toLocaleString()} Kč`;
             dailyDiv.innerText = `${Math.round(total / this.daysUntilSecondWorkdayNextMonth()).toLocaleString()} Kč`;
-
             txnList.innerHTML = '';
             displayTx.slice().reverse().forEach((t) => {
-                const idx = t.id;
-                if (this.editingIndex === idx) {
-                    txnList.innerHTML += `
-                        <div class="transaction" style="flex-direction:column">
-                            <input type="date" id="edit-date" value="${t.date}">
-                            <input type="text" id="edit-desc" value="${t.desc}">
-                            <input type="number" id="edit-amount" value="${Math.abs(t.amount)}">
-                            ${t.amount < 0 ? `<select id="edit-cat">
-                                <option value="Jídlo" ${t.cat==='Jídlo'?'selected':''}>Jídlo 🍕</option>
-                                <option value="Běžné" ${t.cat==='Běžné'?'selected':''}>Běžné 🏠</option>
-                                <option value="Blbosti" ${t.cat==='Blbosti'?'selected':''}>Blbosti 🛍️</option>
-                                <option value="Nadst." ${t.cat==='Nadst.'?'selected':''}>Nadstavba ✨</option>
-                                <option value="Spoření" ${t.cat==='Spoření'?'selected':''}>Spoření 💰</option>
-                            </select>` : ''}
-                            <div style="display:flex; gap:5px">
-                                <button onclick="app.saveInline('${idx}')">Uložit</button>
-                                <button onclick="app.cancelInline()" style="background:#64748b">Zpět</button>
-                            </div>
-                        </div>`;
-                } else {
-                    txnList.innerHTML += `
-                        <div class="transaction">
-                            <div><strong>${t.desc}</strong><br><small>${new Date(t.date).toLocaleDateString()}</small></div>
-                            <div style="color: ${t.amount < 0 ? '#ef4444' : '#10b981'}; display:flex; align-items:center;">
-                                <strong>${Number(t.amount).toLocaleString()} Kč</strong>
-                                <div class="menu-container" style="margin-left:10px">
-                                    <span class="menu-button" onclick="app.toggleMenu('${idx}')">⋮</span>
-                                    <div class="menu-options" id="menu-${idx}">
-                                        <span onclick="app.startEdit('${idx}')">✏️ Upravit</span>
-                                        <span onclick="app.deleteTransaction('${idx}')" style="color:#ef4444">❌ Smazat</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
-                }
+                txnList.innerHTML += `<div class="transaction">
+                    <div><strong>${t.desc}</strong><br><small>${new Date(t.date).toLocaleDateString()}</small></div>
+                    <div style="color: ${t.amount < 0 ? '#ef4444' : '#10b981'}"><strong>${Number(t.amount).toLocaleString()} Kč</strong></div>
+                </div>`;
             });
             this.updateChart(displayTx);
         },
@@ -224,7 +258,7 @@
             const amount = document.getElementById('amount').value;
             const cat = document.getElementById('cat').value;
             const date = document.getElementById('date').value;
-            if(!desc || !amount) return alert("Vyplňte popis a částku.");
+            if(!desc || !amount) return;
             await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: -Math.abs(amount), category: cat, date }]);
             document.getElementById('desc').value = ''; document.getElementById('amount').value = '';
             this.loadTransactions();
@@ -234,38 +268,10 @@
             const desc = document.getElementById('descIncome').value;
             const amount = document.getElementById('amountIncome').value;
             const date = document.getElementById('dateIncome').value;
-            if(!desc || !amount) return alert("Vyplňte popis a částku.");
+            if(!desc || !amount) return;
             await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: Math.abs(amount), category: 'Příjmy', date }]);
             document.getElementById('descIncome').value = ''; document.getElementById('amountIncome').value = '';
             this.loadTransactions();
-        },
-
-        async deleteTransaction(id) {
-            if(confirm('Opravdu smazat?')) { await db.from('transactions').delete().eq('id', id); this.loadTransactions(); }
-        },
-
-        async saveInline(id) {
-            const date = document.getElementById('edit-date').value;
-            const desc = document.getElementById('edit-desc').value;
-            const amount = document.getElementById('edit-amount').value;
-            const catEl = document.getElementById('edit-cat');
-            const cat = catEl ? catEl.value : 'Příjmy';
-            const finalAmt = cat === 'Příjmy' ? Math.abs(amount) : -Math.abs(amount);
-            
-            await db.from('transactions').update({ description: desc, amount: finalAmt, category: cat, date }).eq('id', id);
-            this.editingIndex = null;
-            this.loadTransactions();
-        },
-
-        startEdit(id) { this.editingIndex = id; this.updateUI(); },
-        cancelInline() { this.editingIndex = null; this.updateUI(); },
-        selectMonth(m) { this.currentMonth = m; this.updateUI(); },
-        
-        toggleMenu(id) {
-            const m = document.getElementById(`menu-${id}`);
-            const wasVisible = m.style.display === 'block';
-            document.querySelectorAll('.menu-options').forEach(el => el.style.display = 'none');
-            m.style.display = wasVisible ? 'none' : 'block';
         },
 
         updateChart(list) {
@@ -292,25 +298,14 @@
                 if (day !== 0 && day !== 6) { workdays++; if (workdays === 2) break; }
                 target.setDate(target.getDate() + 1);
             }
-            const diff = Math.ceil((target - today) / 86400000);
-            return diff > 0 ? diff : 1;
+            return Math.ceil((target - today) / 86400000) || 1;
         },
 
-        async clearData() { if(confirm("Opravdu smazat všechna vaše data?")) { await db.from('transactions').delete().eq('user_id', this.user.id); this.loadTransactions(); } },
-        showSection(id) { ['loginSection', 'registerSection', 'appSection'].forEach(s => document.getElementById(s).style.display = s === id ? 'block' : 'none'); },
-        
-        toggleDarkMode() {
-            const isDark = document.body.classList.toggle('dark');
-            localStorage.setItem('darkMode', isDark);
-            if(this.user) this.updateUI();
-        },
-        applyStoredTheme() {
-            const isDark = localStorage.getItem('darkMode') === 'true';
-            document.body.classList.toggle('dark', isDark);
-        }
+        showSection(id) { ['loginSection', 'registerSection', 'appSection', 'settingsSection'].forEach(s => document.getElementById(s).style.display = s === id ? 'block' : 'none'); },
+        toggleDarkMode() { const isDark = document.body.classList.toggle('dark'); localStorage.setItem('darkMode', isDark); if(this.user && !this.user.is_admin) this.updateUI(); },
+        applyStoredTheme() { const isDark = localStorage.getItem('darkMode') === 'true'; document.body.classList.toggle('dark', isDark); }
     };
 
-    document.addEventListener('click', e => { if (!e.target.closest('.menu-container')) document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none'); });
     app.applyStoredTheme();
 </script>
 </body>
