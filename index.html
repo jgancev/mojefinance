@@ -3,241 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance | Pro</title>
+    <title>Moje Finance</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; }
-        .dark { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #f9fafb; --border: #334155; --tag-bg: #334155; }
-        
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); transition: background 0.3s; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; }
+        .dark { --primary: #1e40af; --bg: #121212; --card: #374151; --text: #f9fafb; --border: #4b5563; --tag-bg: #4b5563; --hover-bg: #4b5563; --field-bg: #ffffff; --field-text: #1e293b; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
         .container { max-width: 500px; margin: 0 auto; }
-        
-        /* Karty */
-        .header-card { background: var(--primary); color: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
-        .stat-val { font-size: 2.2rem; font-weight: 800; margin-top: 5px; }
-        .form-card, .list-card { background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 20px; border: 1px solid var(--border); }
-        
-        /* Ovládací prvky */
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 12px; box-sizing: border-box; font-size: 1rem; background: var(--card); color: var(--text); }
-        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
-        button:active { transform: scale(0.98); }
-        
-        /* Přepínač Tabs */
-        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .tab-btn { background: var(--tag-bg); color: var(--text); flex: 1; }
-        .tab-btn.active { background: var(--primary); color: white; }
-
-        /* Transakce a Menu */
-        .transaction { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); position: relative; }
-        .tx-info { display: flex; flex-direction: column; gap: 2px; }
-        .tx-desc { font-weight: 600; }
-        .tx-meta { font-size: 0.8rem; opacity: 0.6; }
-        
-        .menu-container { position: relative; }
-        .dots { cursor: pointer; padding: 5px 10px; font-weight: bold; font-size: 1.2rem; }
-        .dropdown { display: none; position: absolute; right: 0; top: 30px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10; width: 120px; }
-        .dropdown span { display: block; padding: 10px; cursor: pointer; font-size: 0.9rem; }
-        .dropdown span:hover { background: var(--tag-bg); }
-        .dropdown.show { display: block; }
-
-        #chartView { height: 200px; }
+        .header-card { background: var(--primary); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
+        .stats { display: flex; justify-content: space-between; }
+        .stat-val { font-size: 1.5rem; font-weight: bold; }
+        .form-card, .list-card { background: var(--card); padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); }
+        .chart-card { max-width: 300px; margin: 0 auto; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: var(--field-bg); color: var(--field-text); }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .transaction { position: relative; display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .menu-container { position: relative; display: inline-block; }
+        .menu-button { cursor: pointer; padding: 0 4px; }
+        .menu-options { display: none; position: absolute; right: 0; top: 100%; background: var(--card); border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,.1); z-index: 100; }
+        .menu-options span { display: block; padding: 8px 12px; cursor: pointer; white-space: nowrap; color: var(--text); }
+        .menu-options span:hover { background: var(--hover-bg); }
+        .month-chip { display:inline-block; padding:4px 8px; margin:0 4px 4px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.9rem; color: var(--text); }
+        .month-chip.selected { background: var(--primary); color: white; }
     </style>
 </head>
 <body>
 
-<div class="container" id="authView">
-    <div class="form-card">
-        <h2 style="margin-top:0">Přihlášení</h2>
-        <input type="text" id="userIn" placeholder="Uživatelské jméno">
-        <input type="password" id="passIn" placeholder="Heslo">
-        <button onclick="app.login()">Vstoupit</button>
-        <p style="text-align:center; font-size: 0.9rem;">Nemáte účet? <a href="#" onclick="app.showReg(true)">Registrace</a></p>
-    </div>
-    <div id="regBox" style="display:none" class="form-card">
-        <h2>Registrace</h2>
-        <input type="text" id="regU" placeholder="Nové jméno">
-        <input type="password" id="regP" placeholder="Nové heslo">
-        <button onclick="app.register()" style="background:#10b981">Vytvořit účet</button>
-    </div>
+<div class="container" id="loginSection">
+    <h2>Přihlášení</h2>
+    <input type="text" id="loginUser" placeholder="Uživatelské jméno">
+    <input type="password" id="loginPass" placeholder="Heslo">
+    <button type="button" onclick="app.login()">Přihlásit</button>
+    <p>Nemáte účet? <a href="javascript:void(0)" onclick="app.showRegister()">Zaregistrovat</a></p>
 </div>
 
-<div class="container" id="mainView" style="display:none">
-    <div style="display:flex; justify-content: space-between; margin-bottom: 15px;">
-        <span id="userName" style="font-weight: bold;"></span>
-        <button onclick="app.toggleDark()" style="width:auto; padding:5px 15px; margin:0;">🌓</button>
-    </div>
+<div class="container" id="registerSection" style="display:none">
+    <h2>Registrace</h2>
+    <input type="text" id="regUser" placeholder="Uživatelské jméno">
+    <input type="password" id="regPass" placeholder="Heslo">
+    <button type="button" onclick="app.register()">Vytvořit účet</button>
+    <p>Máte účet? <a href="javascript:void(0)" onclick="app.showLogin()">Přihlásit</a></p>
+</div>
 
+<div class="container" id="appSection" style="display:none">
+    <div style="text-align:right; margin-bottom:10px;">
+        <span id="currentUserInfo"></span>
+    </div>
     <div class="header-card">
-        <div style="font-size: 0.9rem; opacity: 0.8;">CELKOVÝ ZŮSTATEK</div>
-        <div class="stat-val" id="totalBal">0 Kč</div>
+        <div style="margin-bottom: 15px;">Zůstatek</div>
+        <div class="stat-val" id="totalBalance">0 Kč</div>
+        <hr style="border: none; border-top: 1px solid var(--border); opacity: 0.2; margin: 15px 0;">
+        <div class="stats">
+            <div><small>Na den</small><div id="dailyAvg">0 Kč</div></div>
+        </div>
     </div>
 
-    <div class="form-card">
-        <h3 style="margin:0 0 10px 0">Nový záznam</h3>
-        <input type="date" id="fDate">
-        <input type="text" id="fDesc" placeholder="Popis">
-        <input type="number" id="fAmt" placeholder="Částka (výdaj jako -100)">
-        <select id="fCat">
+    <div class="form-card" id="expenseForm">
+        <h3 style="margin-top:0">Výdaje</h3>
+        <input type="date" id="date">
+        <input type="text" id="desc" placeholder="Obchodník / Položka">
+        <input type="number" id="amount" placeholder="Částka (Kč)">
+        <select id="cat">
             <option value="Jídlo">Jídlo 🍕</option>
             <option value="Běžné">Běžné 🏠</option>
             <option value="Blbosti">Blbosti 🛍️</option>
-            <option value="Nadstandart">Nadstandart ✨</option>
+            <option value="Nadst.">Nadstandartní ✨</option>
             <option value="Spoření">Spoření 💰</option>
-            <option value="Příjem">Příjem 💵</option>
         </select>
-        <button onclick="app.save()">Uložit</button>
+        <button onclick="app.addTransaction()">Uložit</button>
     </div>
 
-    <div class="tabs">
-        <button class="tab-btn active" id="btnExp" onclick="app.switchTab('expense')">Výdaje</button>
-        <button class="tab-btn" id="btnInc" onclick="app.switchTab('income')">Příjmy</button>
-    </div>
-
-    <div class="list-card">
-        <div id="listItems"></div>
+    <div class="list-card" id="history">
+        <h3 style="margin-top:0">Historie</h3>
+        <div id="monthChips" style="margin-bottom:10px;"></div>
+        <div id="txnList"></div>
     </div>
 
     <div class="form-card">
-        <canvas id="myChart" style="max-height: 250px;"></canvas>
+        <h3 style="margin-top:0">Příjmy</h3>
+        <input type="date" id="dateIncome">
+        <input type="text" id="descIncome" placeholder="Popis příjmu">
+        <input type="number" id="amountIncome" placeholder="Částka (Kč)">
+        <button onclick="app.addIncome()">Uložit</button>
     </div>
 
-    <button onclick="location.reload()" style="background:#ef4444; margin-bottom:40px;">Odhlásit se</button>
+    <button onclick="app.clearData()" style="background: #ef4444; font-size: 0.7rem;">Smazat data tohoto uživatele</button>
+
+    <div class="list-card chart-card">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <div style="text-align:center; margin-top:10px;">
+        <label><input type="checkbox" id="darkToggle" onchange="app.toggleDarkMode()"> Dark mode</label>
+    </div>
 </div>
 
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-    const db = createClient('https://tnrtxrxwzwhsiqtahxzy.supabase.co', 'sb_publishable_hsQEHlhnq-G2gk7ospOI0g_HuSlwTIC');
-    let chart = null;
+    const SB_URL = 'https://tnrtxrxwzwhsiqtahxzy.supabase.co';
+    const SB_KEY = 'sb_publishable_hsQEHlhnq-G2gk7ospOI0g_HuSlwTIC';
+    const db = createClient(SB_URL, SB_KEY);
+
+    let myChart = null;
 
     window.app = {
         user: null,
-        currentTab: 'expense',
+        transactions: [],
+        currentMonth: 'all',
+        editingIndex: null,
 
         async login() {
-            const u = document.getElementById('userIn').value;
-            const p = document.getElementById('passIn').value;
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value;
             const { data } = await db.from('app_users').select('*').eq('username', u).eq('password', p).maybeSingle();
-            if (!data) return alert("Chyba přihlášení.");
+            if (!data) return alert('Špatné přihlášení.');
             this.user = data;
-            this.init();
+            this.showSection('appSection');
+            this.initApp();
         },
 
         async register() {
-            const u = document.getElementById('regU').value;
-            const p = document.getElementById('regP').value;
+            const u = document.getElementById('regUser').value.trim();
+            const p = document.getElementById('regPass').value;
             const { error } = await db.from('app_users').insert([{ username: u, password: p }]);
-            if (error) return alert("Uživatel už existuje.");
-            alert("Registrace ok.");
-            this.showReg(false);
+            if (error) return alert('Uživatel už existuje.');
+            alert('Účet vytvořen.');
+            this.showLogin();
         },
 
-        showReg(s) { document.getElementById('regBox').style.display = s ? 'block' : 'none'; },
-
-        init() {
-            document.getElementById('authView').style.display = 'none';
-            document.getElementById('mainView').style.display = 'block';
-            document.getElementById('userName').innerText = "Ahoj, " + this.user.username;
-            document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
-            this.refresh();
+        initApp() {
+            document.getElementById('currentUserInfo').innerHTML = `Přihlášen: ${this.user.username} &nbsp; <a href="#" onclick="location.reload()">Odhlásit</a>`;
+            const today = new Date().toISOString().slice(0,10);
+            document.getElementById('date').value = today;
+            document.getElementById('dateIncome').value = today;
+            this.loadTransactions();
+            this.applyStoredTheme();
         },
 
-        switchTab(t) {
-            this.currentTab = t;
-            document.getElementById('btnExp').classList.toggle('active', t === 'expense');
-            document.getElementById('btnInc').classList.toggle('active', t === 'income');
-            this.refresh();
+        async loadTransactions() {
+            const { data, error } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
+            if (error) return;
+            // Mapování na tvůj původní formát objektu
+            this.transactions = data.map(t => ({ id: t.id, desc: t.description, amount: t.amount, cat: t.category, date: t.date }));
+            this.updateUI();
         },
 
-        async refresh() {
-            const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: false});
-            const list = document.getElementById('listItems');
-            const totalEl = document.getElementById('totalBal');
-            list.innerHTML = '';
+        updateUI() {
+            const txnList = document.getElementById('txnList');
+            const totalDiv = document.getElementById('totalBalance');
+            const dailyDiv = document.getElementById('dailyAvg');
+
+            // Měsíční čipy
+            let months = [...new Set(this.transactions.map(t => t.date.slice(0,7)).filter(m => m))];
+            months.sort((a,b) => b.localeCompare(a));
+            months.unshift('all');
             
-            let total = 0;
-            const chartData = {};
+            const monthChipsDiv = document.getElementById('monthChips');
+            monthChipsDiv.innerHTML = '';
+            months.forEach(m => {
+                const label = m === 'all' ? 'Vše' : m.split('-')[1] + '/' + m.split('-')[0];
+                monthChipsDiv.innerHTML += `<span class="month-chip ${m===this.currentMonth?'selected':''}" onclick="app.selectMonth('${m}')">${label}</span>`;
+            });
 
-            data.forEach(t => {
-                const val = parseFloat(t.amount);
-                total += val;
-                
-                const isExp = val < 0;
-                if(isExp) chartData[t.category] = (chartData[t.category] || 0) + Math.abs(val);
+            let displayTx = this.currentMonth === 'all' ? this.transactions : this.transactions.filter(t => t.date.slice(0,7) === this.currentMonth);
 
-                if ((this.currentTab === 'expense' && isExp) || (this.currentTab === 'income' && !isExp)) {
-                    list.innerHTML += `
+            let total = displayTx.reduce((acc, curr) => acc + Number(curr.amount), 0);
+            totalDiv.innerText = `${total.toLocaleString()} Kč`;
+            dailyDiv.innerText = `${Math.round(total / this.daysUntilSecondWorkdayNextMonth()).toLocaleString()} Kč`;
+
+            txnList.innerHTML = '';
+            displayTx.slice().reverse().forEach((t) => {
+                const idx = t.id;
+                if (this.editingIndex === idx) {
+                    txnList.innerHTML += `
                         <div class="transaction">
-                            <div class="tx-info">
-                                <span class="tx-desc">${t.description}</span>
-                                <span class="tx-meta">${t.date} • ${t.category}</span>
+                            <div style="width:100%">
+                                <input type="date" id="edit-date" value="${t.date}">
+                                <input type="text" id="edit-desc" value="${t.desc}">
+                                <input type="number" id="edit-amount" value="${Math.abs(t.amount)}">
+                                ${t.amount < 0 ? `<select id="edit-cat">
+                                    <option value="Jídlo" ${t.cat==='Jídlo'?'selected':''}>Jídlo 🍕</option>
+                                    <option value="Běžné" ${t.cat==='Běžné'?'selected':''}>Běžné 🏠</option>
+                                    <option value="Blbosti" ${t.cat==='Blbosti'?'selected':''}>Blbosti 🛍️</option>
+                                    <option value="Nadst." ${t.cat==='Nadst.'?'selected':''}>Nadstavba ✨</option>
+                                    <option value="Spoření" ${t.cat==='Spoření'?'selected':''}>Spoření 💰</option>
+                                </select>` : ''}
+                                <button onclick="app.saveInline('${idx}')">Uložit</button>
+                                <button onclick="app.cancelInline()">Zrušit</button>
                             </div>
-                            <div style="display:flex; align-items:center; gap:10px">
-                                <span style="font-weight:700; color:${isExp ? '#ef4444' : '#10b981'}">${val.toLocaleString()} Kč</span>
-                                <div class="menu-container">
-                                    <div class="dots" onclick="app.toggleMenu('${t.id}')">⋮</div>
-                                    <div id="m-${t.id}" class="dropdown">
-                                        <span onclick="app.editTx('${t.id}')">Upravit</span>
-                                        <span onclick="app.deleteTx('${t.id}')" style="color:red">Smazat</span>
+                        </div>`;
+                } else {
+                    txnList.innerHTML += `
+                        <div class="transaction">
+                            <div><strong>${t.desc}</strong><br><small>${new Date(t.date).toLocaleDateString()}</small></div>
+                            <div style="color: ${t.amount < 0 ? '#ef4444' : '#10b981'}">
+                                ${Number(t.amount).toLocaleString()} Kč
+                                <span class="menu-container">
+                                    <span class="menu-button" onclick="app.toggleMenu('${idx}')">⋮</span>
+                                    <div class="menu-options" id="menu-${idx}">
+                                        <span onclick="app.startEdit('${idx}')">✏️ Upravit</span>
+                                        <span onclick="app.deleteTransaction('${idx}')">❌ Smazat</span>
                                     </div>
-                                </div>
+                                </span>
                             </div>
                         </div>`;
                 }
             });
-            totalEl.innerText = total.toLocaleString() + " Kč";
-            this.renderChart(chartData);
+            this.updateChart(displayTx);
         },
 
+        async addTransaction() {
+            const desc = document.getElementById('desc').value;
+            const amount = document.getElementById('amount').value;
+            const cat = document.getElementById('cat').value;
+            const date = document.getElementById('date').value;
+            if(!desc || !amount) return alert("Vyplň vše!");
+            await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: -Math.abs(amount), category: cat, date }]);
+            document.getElementById('desc').value = ''; document.getElementById('amount').value = '';
+            this.loadTransactions();
+        },
+
+        async addIncome() {
+            const desc = document.getElementById('descIncome').value;
+            const amount = document.getElementById('amountIncome').value;
+            const date = document.getElementById('dateIncome').value;
+            if(!desc || !amount) return alert("Vyplň vše!");
+            await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: Math.abs(amount), category: 'Příjmy', date }]);
+            document.getElementById('descIncome').value = ''; document.getElementById('amountIncome').value = '';
+            this.loadTransactions();
+        },
+
+        async deleteTransaction(id) {
+            if(confirm('Smazat?')) { await db.from('transactions').delete().eq('id', id); this.loadTransactions(); }
+        },
+
+        async saveInline(id) {
+            const date = document.getElementById('edit-date').value;
+            const desc = document.getElementById('edit-desc').value;
+            const amount = document.getElementById('edit-amount').value;
+            const catEl = document.getElementById('edit-cat');
+            const cat = catEl ? catEl.value : 'Příjmy';
+            const finalAmt = cat === 'Příjmy' ? Math.abs(amount) : -Math.abs(amount);
+            
+            await db.from('transactions').update({ description: desc, amount: finalAmt, category: cat, date }).eq('id', id);
+            this.editingIndex = null;
+            this.loadTransactions();
+        },
+
+        startEdit(id) { this.editingIndex = id; this.updateUI(); },
+        cancelInline() { this.editingIndex = null; this.updateUI(); },
+        selectMonth(m) { this.currentMonth = m; this.updateUI(); },
         toggleMenu(id) {
-            document.querySelectorAll('.dropdown').forEach(d => d.id !== 'm-'+id && d.classList.remove('show'));
-            document.getElementById('m-'+id).classList.toggle('show');
+            const m = document.getElementById(`menu-${id}`);
+            const visible = m.style.display === 'block';
+            document.querySelectorAll('.menu-options').forEach(el => el.style.display = 'none');
+            m.style.display = visible ? 'none' : 'block';
         },
 
-        async save() {
-            const d = document.getElementById('fDate').value;
-            const ds = document.getElementById('fDesc').value;
-            const a = document.getElementById('fAmt').value;
-            const c = document.getElementById('fCat').value;
-            if(!ds || !a) return;
-
-            await db.from('transactions').insert([{ user_id: this.user.id, description: ds, amount: parseFloat(a), category: c, date: d }]);
-            document.getElementById('fDesc').value = '';
-            document.getElementById('fAmt').value = '';
-            this.refresh();
-        },
-
-        async deleteTx(id) {
-            if(confirm("Smazat?")) await db.from('transactions').delete().eq('id', id);
-            this.refresh();
-        },
-
-        async editTx(id) {
-            const newAmt = prompt("Nová částka:");
-            if(newAmt) {
-                await db.from('transactions').update({ amount: parseFloat(newAmt) }).eq('id', id);
-                this.refresh();
-            }
-        },
-
-        renderChart(stats) {
-            const ctx = document.getElementById('myChart');
-            if (chart) chart.destroy();
-            chart = new Chart(ctx, {
+        updateChart(list) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const summary = {};
+            list.forEach(t => { if (t.amount < 0) summary[t.cat] = (summary[t.cat] || 0) + Math.abs(t.amount); });
+            if (myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: Object.keys(stats),
-                    datasets: [{ data: Object.values(stats), backgroundColor: ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6'] }]
+                    labels: Object.keys(summary),
+                    datasets: [{ data: Object.values(summary), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }]
                 },
-                options: { plugins: { legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text') } } } }
+                options: { plugins: { legend: { position: 'bottom', labels: { color: document.body.classList.contains('dark') ? '#f9fafb' : '#1e293b' } } } }
             });
         },
 
-        toggleDark() { document.body.classList.toggle('dark'); this.refresh(); }
+        daysUntilSecondWorkdayNextMonth() {
+            const today = new Date();
+            const target = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            let workdays = 0;
+            while (true) {
+                const day = target.getDay();
+                if (day !== 0 && day !== 6) { workdays++; if (workdays === 2) break; }
+                target.setDate(target.getDate() + 1);
+            }
+            return Math.ceil((target - today) / 86400000) || 1;
+        },
+
+        async clearData() { if(confirm("Smazat vše?")) { await db.from('transactions').delete().eq('user_id', this.user.id); this.loadTransactions(); } },
+        showSection(id) { ['loginSection', 'registerSection', 'appSection'].forEach(s => document.getElementById(s).style.display = s === id ? 'block' : 'none'); },
+        showLogin() { this.showSection('loginSection'); },
+        showRegister() { this.showSection('registerSection'); },
+        toggleDarkMode() {
+            const enabled = document.getElementById('darkToggle').checked;
+            document.body.classList.toggle('dark', enabled);
+            localStorage.setItem('darkMode', enabled);
+            if(this.user) this.updateUI();
+        },
+        applyStoredTheme() {
+            const enabled = localStorage.getItem('darkMode') === 'true';
+            document.body.classList.toggle('dark', enabled);
+            document.getElementById('darkToggle').checked = enabled;
+        }
     };
 
-    // Zavření menu při kliknutí mimo
-    window.onclick = (e) => { if(!e.target.matches('.dots')) document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show')); };
+    // Close menus on click outside
+    document.addEventListener('click', e => { if (!e.target.closest('.menu-container')) document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none'); });
+    app.applyStoredTheme();
 </script>
 </body>
 </html>
