@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance v0.3.7</title>
+    <title>Moje Finance v0.3.8</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; --income: #10b981; --expense: #ef4444; }
+        
+        /* Dark Mode (v0.3.2 style colors) */
         .dark { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #f9fafb; --border: #334155; --tag-bg: #334155; --hover-bg: #4b5563; --field-bg: #ffffff; --field-text: #1e293b; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); transition: background 0.3s; }
+        
+        /* AMOLED Mode */
+        .amoled { --primary: #3b82f6; --bg: #000000; --card: #121212; --text: #ffffff; --border: #222222; --tag-bg: #1a1a1a; --hover-bg: #333333; --field-bg: #ffffff; --field-text: #1e293b; }
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); transition: background 0.2s; }
         .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 1300px; margin: 0 auto; }
         @media (min-width: 1024px) { .dashboard-grid { grid-template-columns: 320px 1fr 320px; } }
         .card { background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border); height: fit-content; margin-bottom: 20px; }
@@ -54,7 +60,7 @@
             <strong id="userLabel"></strong>
             <button class="settings-btn" style="margin-left:10px" onclick="app.showSettings()">⚙️ <span id="t-settings">Nastavení</span></button>
         </div>
-        <button class="mode-btn" onclick="app.toggleDarkMode()">🌓 DarkMode</button>
+        <button class="mode-btn" onclick="app.cycleTheme()" id="themeBtn">🌓 Mode: Light</button>
     </div>
 
     <div class="dashboard-grid">
@@ -139,7 +145,8 @@
             history: "Historie", dailyLimit: "Denní limit do výplaty:", logout: "Odhlásit se", stTitle: "Nastavení",
             stLang: "Jazyk", stCurr: "Měna", stCats: "Moje kategorie (max 10)", add: "Přidat", close: "Zavřít",
             save: "Uložit", back: "Zpět", placeholderExp: "Obchodník / Položka", placeholderInc: "Popis příjmu",
-            all: "Vše", confirmDel: "Smazat?", userPH: "Jméno", passPH: "Heslo"
+            all: "Vše", confirmDel: "Smazat?", userPH: "Jméno", passPH: "Heslo",
+            themeLight: "Světlý", themeDark: "Tmavý", themeAmoled: "AMOLED"
         },
         en: {
             loginTitle: "Login", loginBtn: "Enter", noAcc: "No account?", regLink: "Sign up",
@@ -148,16 +155,19 @@
             history: "History", dailyLimit: "Daily limit until payday:", logout: "Logout", stTitle: "Settings",
             stLang: "Language", stCurr: "Currency", stCats: "My Categories (max 10)", add: "Add", close: "Close",
             save: "Save", back: "Back", placeholderExp: "Merchant / Item", placeholderInc: "Income description",
-            all: "All", confirmDel: "Delete?", userPH: "Username", passPH: "Password"
+            all: "All", confirmDel: "Delete?", userPH: "Username", passPH: "Password",
+            themeLight: "Light", themeDark: "Dark", themeAmoled: "AMOLED"
         }
     };
 
     window.app = {
         user: null, txns: [], curMonth: 'all', lang: localStorage.getItem('lang') || 'cs', curr: 'Kč',
+        theme: localStorage.getItem('theme') || 'light',
         defCats: ["Jídlo 🍕", "Běžné 🏠", "Blbosti 🛍️", "Nadstandartní ✨", "Spoření 💰"],
 
         async start() {
             this.applyLang();
+            this.applyTheme();
             const savedUid = localStorage.getItem('uid');
             if (savedUid) {
                 const { data } = await db.from('app_users').select('*').eq('id', savedUid).maybeSingle();
@@ -251,7 +261,7 @@
         async addCat() { if(this.user.custom_categories.length<10){this.user.custom_categories.push("Nová"); await this.savePref(); this.renderCats();} },
         async delCat(i) { this.user.custom_categories.splice(i,1); await this.savePref(); this.renderCats(); },
         async updatePref(key, val) { if(key === 'lang') { this.lang = val; localStorage.setItem('lang', val); } if(key === 'curr') this.curr = val; await this.savePref(); this.applyLang(); this.updateUI(); },
-        async savePref() { await db.from('app_users').update({ custom_categories:this.user.custom_categories, lang: this.lang, currency: this.curr }).eq('id', this.user.id); },
+        async savePref() { if(this.user) await db.from('app_users').update({ custom_categories:this.user.custom_categories, lang: this.lang, currency: this.curr }).eq('id', this.user.id); },
 
         applyLang() {
             const l = i18n[this.lang];
@@ -262,6 +272,7 @@
             document.getElementById('incDesc').placeholder = l.placeholderInc;
             document.getElementById('stLang').value = this.lang;
             document.getElementById('stCurr').value = this.curr;
+            this.updateThemeBtn();
         },
 
         toggleLang() { this.lang = this.lang === 'cs' ? 'en' : 'cs'; localStorage.setItem('lang', this.lang); this.applyLang(); },
@@ -280,10 +291,27 @@
             if(chart) chart.destroy();
             chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#71717a', '#22c55e'] }] }, options: { plugins: { legend: { display:false } } } });
         },
-        toggleDarkMode() { const d = document.body.classList.toggle('dark'); localStorage.setItem('dark', d); }
+        cycleTheme() {
+            if (this.theme === 'light') this.theme = 'dark';
+            else if (this.theme === 'dark') this.theme = 'amoled';
+            else this.theme = 'light';
+            localStorage.setItem('theme', this.theme);
+            this.applyTheme();
+        },
+        applyTheme() {
+            document.body.classList.remove('dark', 'amoled');
+            if (this.theme !== 'light') document.body.classList.add(this.theme);
+            this.updateThemeBtn();
+        },
+        updateThemeBtn() {
+            const btn = document.getElementById('themeBtn');
+            if (!btn) return;
+            const l = i18n[this.lang];
+            const name = this.theme === 'light' ? l.themeLight : (this.theme === 'dark' ? l.themeDark : l.themeAmoled);
+            btn.innerText = `🌓 Mode: ${name}`;
+        }
     };
     app.start();
-    if(localStorage.getItem('dark')==='true') document.body.classList.add('dark');
 </script>
 </body>
 </html>
