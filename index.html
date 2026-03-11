@@ -3,54 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance v0.3.6</title>
+    <title>Moje Finance v0.3.7</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; --income: #10b981; --expense: #ef4444; }
         .dark { --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #f9fafb; --border: #334155; --tag-bg: #334155; --hover-bg: #4b5563; --field-bg: #ffffff; --field-text: #1e293b; }
-        
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); transition: background 0.3s; }
-        
         .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 1300px; margin: 0 auto; }
         @media (min-width: 1024px) { .dashboard-grid { grid-template-columns: 320px 1fr 320px; } }
-
         .card { background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border); height: fit-content; margin-bottom: 20px; }
         .header-card { background: var(--primary); color: white; border: none; grid-column: 1 / -1; display: flex; justify-content: space-around; text-align: center; padding: 25px; margin-bottom: 0; }
-        
         .stat-val { font-size: 1.6rem; font-weight: 800; }
         input, select, button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; background: var(--field-bg); color: var(--field-text); }
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-        
         .mode-btn, .settings-btn, .lang-btn { width: auto; padding: 6px 12px; font-size: 0.8rem; background: var(--tag-bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
-        
         .txn-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; }
         .txn-item.future { opacity: 0.5; font-style: italic; }
-        
         .chip { display:inline-block; padding:5px 12px; margin:0 5px 5px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.8rem; border: 1px solid var(--border); color: var(--text); }
         .chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
-        
-        .edit-box { display: flex; flex-direction: column; gap: 5px; width: 100%; background: var(--hover-bg); padding: 10px; border-radius: 8px; }
         .hidden { display: none !important; }
         .icon-btn { cursor: pointer; opacity: 0.5; margin-left: 10px; font-style: normal; }
+        .edit-box { display: flex; flex-direction: column; gap: 5px; width: 100%; background: var(--hover-bg); padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-<div id="authSection" style="max-width: 380px; margin: 80px auto;">
-    <div style="text-align: right; margin-bottom: 10px;">
+<div id="authSection" class="hidden">
+    <div style="text-align: right; margin: 20px auto; max-width: 380px;">
         <button class="lang-btn" onclick="app.toggleLang()">🌐 CZ/EN</button>
     </div>
-    <div class="card" id="loginBox">
+    <div class="card" id="loginBox" style="max-width: 380px; margin: 0 auto;">
         <h2 id="t-loginTitle">Přihlášení</h2>
-        <input type="text" id="loginUser" placeholder="Jméno">
-        <input type="password" id="loginPass" placeholder="Heslo">
+        <input type="text" id="loginUser">
+        <input type="password" id="loginPass">
         <button onclick="app.login()" id="t-loginBtn">Vstoupit</button>
         <p style="text-align:center; font-size: 0.8rem;"><span id="t-noAcc">Nemáte účet?</span> <a href="#" onclick="app.toggleAuth(true)" id="t-regLink">Registrace</a></p>
     </div>
-    <div class="card hidden" id="regBox">
+    <div class="card hidden" id="regBox" style="max-width: 380px; margin: 0 auto;">
         <h2 id="t-regTitle">Registrace</h2>
-        <input type="text" id="regUser" placeholder="Jméno">
-        <input type="password" id="regPass" placeholder="Heslo">
+        <input type="text" id="regUser">
+        <input type="password" id="regPass">
         <button onclick="app.register()" id="t-regBtn">Vytvořit účet</button>
         <p style="text-align:center; font-size: 0.8rem;"><span id="t-haveAcc">Máte účet?</span> <a href="#" onclick="app.toggleAuth(false)" id="t-loginLink">Přihlášení</a></p>
     </div>
@@ -70,25 +62,23 @@
             <div class="stat-box"><div id="t-onAccount">Na účtu</div><div class="stat-val" id="balToday">0</div></div>
             <div class="stat-box"><div id="t-outlook">Výhled</div><div class="stat-val" id="balFuture">0</div></div>
         </div>
-
         <div id="leftCol">
             <div class="card">
                 <h3 style="margin-top:0; color:var(--expense)" id="t-expenses">Výdaje</h3>
                 <input type="date" id="expDate">
-                <input type="text" id="expDesc" placeholder="Obchodník / Položka">
-                <input type="number" id="expAmt" placeholder="Částka">
+                <input type="text" id="expDesc">
+                <input type="number" id="expAmt">
                 <select id="expCat"></select>
                 <button onclick="app.saveTxn(false)" style="background: var(--expense);" id="t-saveExp">Uložit</button>
             </div>
             <div class="card">
                 <h3 style="margin-top:0; color:var(--income)" id="t-income">Příjmy</h3>
                 <input type="date" id="incDate">
-                <input type="text" id="incDesc" placeholder="Popis příjmu">
-                <input type="number" id="incAmt" placeholder="Částka">
+                <input type="text" id="incDesc">
+                <input type="number" id="incAmt">
                 <button onclick="app.saveTxn(true)" style="background: var(--income);" id="t-saveInc">Uložit</button>
             </div>
         </div>
-
         <div id="midCol">
             <div class="card">
                 <h3 style="margin-top:0" id="t-history">Historie</h3>
@@ -96,14 +86,13 @@
                 <div id="txnList"></div>
             </div>
         </div>
-
         <div id="rightCol">
             <div class="card" style="text-align: center;">
                 <small id="t-dailyLimit">Denní limit do výplaty:</small>
                 <div id="dailyAvg" style="font-size: 1.5rem; font-weight: 800;">0</div>
             </div>
             <div class="card"><canvas id="myChart"></canvas></div>
-            <button onclick="location.reload()" style="background: #64748b; font-size: 0.8rem; border-radius: 8px; padding: 10px; color: white; border: none; width: 100%; cursor: pointer;" id="t-logout">Odhlásit se</button>
+            <button onclick="app.logout()" style="background: #64748b; font-size: 0.8rem; border-radius: 8px; padding: 10px; color: white; border: none; width: 100%; cursor: pointer;" id="t-logout">Odhlásit se</button>
         </div>
     </div>
 </div>
@@ -111,7 +100,6 @@
 <div id="settingsOverlay" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; display:flex; align-items:center; justify-content:center;">
     <div class="card" style="max-width: 450px; width: 90%;">
         <h2 id="t-stTitle">Nastavení</h2>
-        
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
             <div>
                 <label style="font-size:0.8rem" id="t-stLang">Jazyk</label>
@@ -129,10 +117,8 @@
                 </select>
             </div>
         </div>
-
-        <div id="adminSection" class="hidden"><h4>Uživatelé</h4><div id="adminUserList"></div></div>
         <div id="userOnly">
-            <h4 id="t-stCats">Moje kategorie (max 10)</h4>
+            <h4 id="t-stCats">Moje kategorie</h4>
             <div id="catEditor"></div>
             <button onclick="app.addCat()">+ <span id="t-add">Přidat</span></button>
         </div>
@@ -153,7 +139,7 @@
             history: "Historie", dailyLimit: "Denní limit do výplaty:", logout: "Odhlásit se", stTitle: "Nastavení",
             stLang: "Jazyk", stCurr: "Měna", stCats: "Moje kategorie (max 10)", add: "Přidat", close: "Zavřít",
             save: "Uložit", back: "Zpět", placeholderExp: "Obchodník / Položka", placeholderInc: "Popis příjmu",
-            all: "Vše", confirmDel: "Smazat?"
+            all: "Vše", confirmDel: "Smazat?", userPH: "Jméno", passPH: "Heslo"
         },
         en: {
             loginTitle: "Login", loginBtn: "Enter", noAcc: "No account?", regLink: "Sign up",
@@ -162,14 +148,23 @@
             history: "History", dailyLimit: "Daily limit until payday:", logout: "Logout", stTitle: "Settings",
             stLang: "Language", stCurr: "Currency", stCats: "My Categories (max 10)", add: "Add", close: "Close",
             save: "Save", back: "Back", placeholderExp: "Merchant / Item", placeholderInc: "Income description",
-            all: "All", confirmDel: "Delete?"
+            all: "All", confirmDel: "Delete?", userPH: "Username", passPH: "Password"
         }
     };
 
     window.app = {
-        user: null, txns: [], curMonth: 'all', editingId: null,
-        lang: 'cs', curr: 'Kč',
+        user: null, txns: [], curMonth: 'all', lang: localStorage.getItem('lang') || 'cs', curr: 'Kč',
         defCats: ["Jídlo 🍕", "Běžné 🏠", "Blbosti 🛍️", "Nadstandartní ✨", "Spoření 💰"],
+
+        async start() {
+            this.applyLang();
+            const savedUid = localStorage.getItem('uid');
+            if (savedUid) {
+                const { data } = await db.from('app_users').select('*').eq('id', savedUid).maybeSingle();
+                if (data) { this.user = data; this.lang = data.lang || this.lang; this.curr = data.currency || this.curr; this.init(); return; }
+            }
+            document.getElementById('authSection').classList.remove('hidden');
+        },
 
         async login() {
             const u = document.getElementById('loginUser').value.trim();
@@ -177,13 +172,13 @@
             const { data } = await db.from('app_users').select('*').eq('username', u).eq('password', p).maybeSingle();
             if(!data) return alert("Error");
             this.user = data;
+            localStorage.setItem('uid', data.id);
             this.lang = data.lang || this.lang;
             this.curr = data.currency || this.curr;
-            if(this.user.is_admin) this.showSettings(); else {
-                if(!this.user.custom_categories) this.user.custom_categories = this.defCats;
-                this.init();
-            }
+            this.init();
         },
+
+        logout() { localStorage.removeItem('uid'); location.reload(); },
 
         async register() {
             const u = document.getElementById('regUser').value.trim();
@@ -212,28 +207,15 @@
             const now = new Date().toISOString().slice(0,10);
             const balToday = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
             const balFuture = this.txns.reduce((a, b) => a + b.amount, 0);
-            
             document.getElementById('balToday').innerText = `${balToday.toLocaleString()} ${this.curr}`;
             document.getElementById('balFuture').innerText = `${balFuture.toLocaleString()} ${this.curr}`;
             document.getElementById('dailyAvg').innerText = `${Math.round(balToday / this.calcDays()).toLocaleString()} ${this.curr}`;
-
             const months = ['all', ...new Set(this.txns.map(t => t.date.slice(0,7)).sort().reverse())];
-            document.getElementById('monthChips').innerHTML = months.map(m => `
-                <span class="chip ${this.curMonth===m?'selected':''}" onclick="app.setMonth('${m}')">${m==='all'?i18n[this.lang].all:m}</span>
-            `).join('');
-
+            document.getElementById('monthChips').innerHTML = months.map(m => `<span class="chip ${this.curMonth===m?'selected':''}" onclick="app.setMonth('${m}')">${m==='all'?i18n[this.lang].all:m}</span>`).join('');
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
             document.getElementById('txnList').innerHTML = filtered.slice().reverse().map(t => {
                 if(this.editingId === t.id) return this.renderEditRow(t);
-                return `
-                <div class="txn-item ${t.date > now ? 'future' : ''}">
-                    <div><strong>${t.description}</strong><br><small>${t.date > now ? '⏳ ':''}${t.date} • ${t.category}</small></div>
-                    <div style="color:${t.amount>0?'var(--income)':'var(--expense)'}">
-                        <strong>${t.amount.toLocaleString()} ${this.curr}</strong>
-                        <i class="icon-btn" onclick="app.editingId='${t.id}'; app.updateUI();">✏️</i>
-                        <i class="icon-btn" onclick="app.delTxn('${t.id}')">✕</i>
-                    </div>
-                </div>`;
+                return `<div class="txn-item ${t.date > now ? 'future' : ''}"><div><strong>${t.description}</strong><br><small>${t.date > now ? '⏳ ':''}${t.date} • ${t.category}</small></div><div style="color:${t.amount>0?'var(--income)':'var(--expense)'}"><strong>${t.amount.toLocaleString()} ${this.curr}</strong><i class="icon-btn" onclick="app.editingId='${t.id}'; app.updateUI();">✏️</i><i class="icon-btn" onclick="app.delTxn('${t.id}')">✕</i></div></div>`;
             }).join('');
             this.updateChart(filtered);
         },
@@ -241,13 +223,7 @@
         renderEditRow(t) {
             const cats = t.amount > 0 ? [(this.lang==='cs'?'Příjem':'Income')] : this.user.custom_categories;
             const l = i18n[this.lang];
-            return `<div class="edit-box">
-                <input type="date" id="edDate" value="${t.date}">
-                <input type="text" id="edDesc" value="${t.description}">
-                <input type="number" id="edAmt" value="${Math.abs(t.amount)}">
-                <select id="edCat">${cats.map(c=>`<option ${t.category===c?'selected':''}>${c}</option>`).join('')}</select>
-                <div style="display:flex; gap:5px"><button onclick="app.saveEdit('${t.id}', ${t.amount>0})">${l.save}</button><button onclick="app.editingId=null; app.updateUI()" style="background:#64748b">${l.back}</button></div>
-            </div>`;
+            return `<div class="edit-box"><input type="date" id="edDate" value="${t.date}"><input type="text" id="edDesc" value="${t.description}"><input type="number" id="edAmt" value="${Math.abs(t.amount)}"><select id="edCat">${cats.map(c=>`<option ${t.category===c?'selected':''}>${c}</option>`).join('')}</select><div style="display:flex; gap:5px"><button onclick="app.saveEdit('${t.id}', ${t.amount>0})">${l.save}</button><button onclick="app.editingId=null; app.updateUI()" style="background:#64748b">${l.back}</button></div></div>`;
         },
 
         async saveEdit(id, isInc) {
@@ -269,41 +245,26 @@
 
         renderCats() {
             document.getElementById('expCat').innerHTML = this.user.custom_categories.map(c => `<option value="${c}">${c}</option>`).join('');
-            document.getElementById('catEditor').innerHTML = this.user.custom_categories.map((c, i) => `
-                <div style="display:flex; gap:5px; margin-bottom:5px"><input type="text" value="${c}" onchange="app.editCat(${i}, this.value)" style="margin:0"><button onclick="app.delCat(${i})" style="width:auto; background:var(--expense); margin:0">✕</button></div>`).join('');
+            document.getElementById('catEditor').innerHTML = this.user.custom_categories.map((c, i) => `<div style="display:flex; gap:5px; margin-bottom:5px"><input type="text" value="${c}" onchange="app.editCat(${i}, this.value)" style="margin:0"><button onclick="app.delCat(${i})" style="width:auto; background:var(--expense); margin:0">✕</button></div>`).join('');
         },
         async editCat(i,v) { this.user.custom_categories[i]=v; await this.savePref(); },
         async addCat() { if(this.user.custom_categories.length<10){this.user.custom_categories.push("Nová"); await this.savePref(); this.renderCats();} },
         async delCat(i) { this.user.custom_categories.splice(i,1); await this.savePref(); this.renderCats(); },
-        
-        async updatePref(key, val) {
-            if(key === 'lang') this.lang = val;
-            if(key === 'curr') this.curr = val;
-            await this.savePref();
-            this.applyLang();
-            this.updateUI();
-        },
-        async savePref() { 
-            await db.from('app_users').update({
-                custom_categories:this.user.custom_categories,
-                lang: this.lang,
-                currency: this.curr
-            }).eq('id', this.user.id); 
-        },
+        async updatePref(key, val) { if(key === 'lang') { this.lang = val; localStorage.setItem('lang', val); } if(key === 'curr') this.curr = val; await this.savePref(); this.applyLang(); this.updateUI(); },
+        async savePref() { await db.from('app_users').update({ custom_categories:this.user.custom_categories, lang: this.lang, currency: this.curr }).eq('id', this.user.id); },
 
         applyLang() {
             const l = i18n[this.lang];
-            Object.keys(l).forEach(key => {
-                const el = document.getElementById('t-' + key);
-                if(el) el.innerText = l[key];
-            });
+            Object.keys(l).forEach(key => { const el = document.getElementById('t-' + key); if(el) el.innerText = l[key]; });
+            ['loginUser','regUser'].forEach(id => { const el = document.getElementById(id); if(el) el.placeholder = l.userPH; });
+            ['loginPass','regPass'].forEach(id => { const el = document.getElementById(id); if(el) el.placeholder = l.passPH; });
             document.getElementById('expDesc').placeholder = l.placeholderExp;
             document.getElementById('incDesc').placeholder = l.placeholderInc;
             document.getElementById('stLang').value = this.lang;
             document.getElementById('stCurr').value = this.curr;
         },
 
-        toggleLang() { this.lang = this.lang === 'cs' ? 'en' : 'cs'; this.applyLang(); },
+        toggleLang() { this.lang = this.lang === 'cs' ? 'en' : 'cs'; localStorage.setItem('lang', this.lang); this.applyLang(); },
         showSettings() { document.getElementById('settingsOverlay').classList.remove('hidden'); },
         hideSettings() { document.getElementById('settingsOverlay').classList.add('hidden'); },
         toggleAuth(reg) { document.getElementById('loginBox').classList.toggle('hidden', reg); document.getElementById('regBox').classList.toggle('hidden', !reg); },
@@ -321,6 +282,7 @@
         },
         toggleDarkMode() { const d = document.body.classList.toggle('dark'); localStorage.setItem('dark', d); }
     };
+    app.start();
     if(localStorage.getItem('dark')==='true') document.body.classList.add('dark');
 </script>
 </body>
