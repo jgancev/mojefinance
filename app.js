@@ -45,7 +45,7 @@ const app = {
             this.lang = profile.lang || this.lang; 
             this.curr = profile.currency || this.curr;
             this.user.custom_categories = profile.custom_categories || this.defCats;
-            this.isAdmin = (profile.role === 'admin'); // Zjištění role
+            this.isAdmin = (profile.role === 'admin');
         } else {
             this.user.custom_categories = this.defCats;
         }
@@ -79,7 +79,6 @@ const app = {
         document.getElementById('mainSection').classList.remove('hidden');
         this.applyLang();
         
-        // Zobrazení Admin panelu pokud je uživatel admin
         if (this.isAdmin) {
             document.getElementById('adminOnly').classList.remove('hidden');
         }
@@ -214,19 +213,30 @@ const app = {
 
     applyLang() {
         const l = i18n[this.lang];
+        // 1. Texty pro elementy s ID "t-neco"
         Object.keys(l).forEach(key => {
-            const el = document.getElementById('t-' + key) || document.getElementById(key);
+            const el = document.getElementById('t-' + key);
             if(el) {
-                if(el.tagName === 'INPUT') el.placeholder = l[key] || '';
+                if(el.tagName === 'INPUT') el.placeholder = l[key];
                 else el.innerText = l[key];
             }
         });
-        document.getElementById('loginUser').placeholder = l.userPH;
-        document.getElementById('regUser').placeholder = l.userPH;
-        document.getElementById('loginPass').placeholder = l.passPH;
-        document.getElementById('regPass').placeholder = l.passPH;
-        document.getElementById('expDesc').placeholder = l.placeholderExp;
-        document.getElementById('incDesc').placeholder = l.placeholderInc;
+        // 2. Ruční mapování pro tlačítka, která nemají prefix "t-"
+        if(document.getElementById('saveExpBtn')) document.getElementById('saveExpBtn').innerText = l.save;
+        if(document.getElementById('saveIncBtn')) document.getElementById('saveIncBtn').innerText = l.save;
+        if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').innerText = l.logout;
+        if(document.getElementById('closeSettings')) document.getElementById('closeSettings').innerText = l.close;
+        if(document.getElementById('loginBtn')) document.getElementById('loginBtn').innerText = l.loginBtn;
+        if(document.getElementById('regBtn')) document.getElementById('regBtn').innerText = l.regBtn;
+        
+        // 3. Placeholdery
+        if(document.getElementById('expDesc')) document.getElementById('expDesc').placeholder = l.placeholderExp;
+        if(document.getElementById('incDesc')) document.getElementById('incDesc').placeholder = l.placeholderInc;
+        if(document.getElementById('loginUser')) document.getElementById('loginUser').placeholder = l.userPH;
+        if(document.getElementById('regUser')) document.getElementById('regUser').placeholder = l.userPH;
+        if(document.getElementById('loginPass')) document.getElementById('loginPass').placeholder = l.passPH;
+        if(document.getElementById('regPass')) document.getElementById('regPass').placeholder = l.passPH;
+        
         document.getElementById('stLang').value = this.lang;
         document.getElementById('stCurr').value = this.curr;
         this.updateThemeBtn();
