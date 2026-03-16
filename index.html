@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance v0.3.9.1 (Modular)</title>
+    <title>Moje Finance v0.3.9.2 (Admin Ready)</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -85,6 +85,12 @@
             <div><label style="font-size:0.8rem" id="t-stCurr"></label><select id="stCurr"><option value="Kč">CZK (Kč)</option><option value="€">EUR (€)</option><option value="$">USD ($)</option></select></div>
         </div>
         <div id="userOnly"><h4 id="t-stCats"></h4><div id="catEditor"></div><button id="addCatBtn">+ <span id="t-add"></span></button></div>
+        
+        <div id="adminOnly" class="hidden" style="border-top: 2px solid var(--border); margin-top: 20px; padding-top: 10px;">
+            <h4 style="color: var(--primary)">👑 Admin Panel</h4>
+            <p style="font-size: 0.7rem; opacity: 0.7;">Vítej zpět, šéfe. Zde brzy přibudou globální statistiky.</p>
+        </div>
+
         <button id="closeSettings" style="margin-top:20px; background:var(--text)"></button>
     </div>
 </div>
