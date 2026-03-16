@@ -1,30 +1,118 @@
-:root { 
-    --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; 
-    --tag-bg: #e2e8f0; --hover-bg: #f1f5f9; --field-bg: #ffffff; --field-text: #1e293b; 
-    --income: #10b981; --expense: #ef4444; 
-}
-.dark { 
-    --primary: #3b82f6; --bg: #0f172a; --card: #1e293b; --text: #f9fafb; --border: #334155; 
-    --tag-bg: #334155; --hover-bg: #4b5563; --field-bg: #ffffff; --field-text: #1e293b; 
-}
-.amoled { 
-    --primary: #3b82f6; --bg: #000000; --card: #121212; --text: #ffffff; --border: #222222; 
-    --tag-bg: #1a1a1a; --hover-bg: #333333; --field-bg: #ffffff; --field-text: #1e293b; 
+:root {
+    --primary: #3b82f6;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --border: #e2e8f0;
+    --income: #10b981;
+    --expense: #ef4444;
 }
 
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); transition: background 0.2s; }
-.dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 1300px; margin: 0 auto; }
-@media (min-width: 1024px) { .dashboard-grid { grid-template-columns: 320px 1fr 320px; } }
-.card { background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border); height: fit-content; margin-bottom: 20px; }
-.header-card { background: var(--primary); color: white; border: none; grid-column: 1 / -1; display: flex; justify-content: space-around; text-align: center; padding: 25px; margin-bottom: 0; }
-.stat-val { font-size: 1.6rem; font-weight: 800; }
-input, select, button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; background: var(--field-bg); color: var(--field-text); }
-button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-.mode-btn, .settings-btn, .lang-btn { width: auto; padding: 6px 12px; font-size: 0.8rem; background: var(--tag-bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
-.txn-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; }
-.txn-item.future { opacity: 0.5; font-style: italic; }
-.chip { display:inline-block; padding:5px 12px; margin:0 5px 5px 0; background: var(--tag-bg); border-radius:12px; cursor:pointer; font-size:0.8rem; border: 1px solid var(--border); color: var(--text); }
-.chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
+.dark {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f1f5f9;
+    --border: #334155;
+}
+
+.amoled {
+    --bg: #000000;
+    --card: #000000;
+    --text: #ffffff;
+    --border: #222;
+}
+
+body {
+    font-family: -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    transition: 0.3s;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    margin-bottom: 15px;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    box-sizing: border-box;
+}
+
+button {
+    background: var(--primary);
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover { opacity: 0.9; }
+
 .hidden { display: none !important; }
-.icon-btn { cursor: pointer; opacity: 0.5; margin-left: 10px; font-style: normal; }
-.edit-box { display: flex; flex-direction: column; gap: 5px; width: 100%; background: var(--hover-bg); padding: 10px; border-radius: 8px; }
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+@media (max-width: 1000px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+.txn-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.stat-box { text-align: center; }
+.stat-val { font-size: 1.5rem; font-weight: 800; }
+
+.chip {
+    display: inline-block;
+    padding: 5px 12px;
+    background: var(--border);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-right: 5px;
+}
+.chip.selected { background: var(--primary); color: white; }
+
+.icon-btn { cursor: pointer; margin-left: 8px; opacity: 0.6; }
+.icon-btn:hover { opacity: 1; }
+
+.settings-btn, .mode-btn { width: auto; padding: 8px 15px; font-size: 0.8rem; }
+
+/* OPRAVA DARK MODU PRO ZAVÍRACÍ TLAČÍTKA */
+.dark #closeSettings, .amoled #closeSettings,
+.dark #closeAdmin, .amoled #closeAdmin {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+.admin-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+}
