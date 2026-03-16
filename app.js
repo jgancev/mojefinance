@@ -21,25 +21,31 @@ const app = {
     },
 
     setupEventListeners() {
-        document.getElementById('loginBtn').onclick = () => this.login();
-        document.getElementById('regBtn').onclick = () => this.register();
-        document.getElementById('logoutBtn').onclick = () => this.logout();
+        const ids = ['loginBtn','regBtn','logoutBtn','toggleLangBtn','themeBtn','openSettings','closeSettings','saveExpBtn','saveIncBtn','addCatBtn'];
+        ids.forEach(id => { 
+            const el = document.getElementById(id); 
+            if(el) {
+                if(id === 'loginBtn') el.onclick = () => this.login();
+                if(id === 'regBtn') el.onclick = () => this.register();
+                if(id === 'logoutBtn') el.onclick = () => this.logout();
+                if(id === 'toggleLangBtn') el.onclick = () => this.toggleLang();
+                if(id === 'themeBtn') el.onclick = () => this.cycleTheme();
+                if(id === 'openSettings') el.onclick = () => this.showSettings();
+                if(id === 'closeSettings') el.onclick = () => this.hideSettings();
+                if(id === 'saveExpBtn') el.onclick = () => this.saveTxn(false);
+                if(id === 'saveIncBtn') el.onclick = () => this.saveTxn(true);
+                if(id === 'addCatBtn') el.onclick = () => this.addCat();
+            }
+        });
         document.getElementById('toReg').onclick = (e) => { e.preventDefault(); this.toggleAuth(true); };
         document.getElementById('toLogin').onclick = (e) => { e.preventDefault(); this.toggleAuth(false); };
-        document.getElementById('toggleLangBtn').onclick = () => this.toggleLang();
-        document.getElementById('themeBtn').onclick = () => this.cycleTheme();
-        document.getElementById('openSettings').onclick = () => this.showSettings();
-        document.getElementById('closeSettings').onclick = () => this.hideSettings();
-        document.getElementById('saveExpBtn').onclick = () => this.saveTxn(false);
-        document.getElementById('saveIncBtn').onclick = () => this.saveTxn(true);
-        document.getElementById('addCatBtn').onclick = () => this.addCat();
         document.getElementById('stLang').onchange = (e) => this.updatePref('lang', e.target.value);
         document.getElementById('stCurr').onchange = (e) => this.updatePref('curr', e.target.value);
     },
 
     async handleAuth(authUser) {
         this.user = authUser;
-        const { data: profile } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+        const { data: profile, error } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
         
         if (profile) {
             this.lang = profile.lang || this.lang; 
@@ -48,6 +54,7 @@ const app = {
             this.isAdmin = (profile.role === 'admin');
         } else {
             this.user.custom_categories = this.defCats;
+            this.isAdmin = false;
         }
         this.init();
     },
@@ -77,12 +84,14 @@ const app = {
     init() {
         document.getElementById('authSection').classList.add('hidden');
         document.getElementById('mainSection').classList.remove('hidden');
-        this.applyLang();
         
-        if (this.isAdmin) {
-            document.getElementById('adminOnly').classList.remove('hidden');
+        // DŮLEŽITÉ: Admin tab
+        const adminTab = document.getElementById('adminOnly');
+        if (this.isAdmin && adminTab) {
+            adminTab.classList.remove('hidden');
         }
 
+        this.applyLang();
         document.getElementById('userLabel').innerText = `👤 ${this.user.email}`;
         const today = new Date().toISOString().slice(0,10);
         document.getElementById('expDate').value = today; document.getElementById('incDate').value = today;
@@ -91,7 +100,6 @@ const app = {
 
     async loadTxns() {
         const { data, error } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
-        if (error) console.error("Load Error:", error.message);
         this.txns = data || []; this.updateUI();
     },
 
@@ -132,7 +140,6 @@ const app = {
                     </div>
                 </div>`;
         }).join('');
-
         document.querySelectorAll('.edit-btn').forEach(btn => btn.onclick = () => { this.editingId = btn.dataset.id; this.updateUI(); });
         document.querySelectorAll('.del-btn').forEach(btn => btn.onclick = () => this.delTxn(btn.dataset.id));
     },
@@ -144,27 +151,16 @@ const app = {
             document.getElementById('saveEditBtn').onclick = () => this.saveEdit(t.id, t.amount > 0);
             document.getElementById('cancelEditBtn').onclick = () => { this.editingId = null; this.updateUI(); };
         }, 0);
-        return `
-            <div class="edit-box">
-                <input type="date" id="edDate" value="${t.date}">
-                <input type="text" id="edDesc" value="${t.description}">
-                <input type="number" id="edAmt" value="${Math.abs(t.amount)}">
-                <select id="edCat">${cats.map(c=>`<option ${t.category===c?'selected':''}>${c}</option>`).join('')}</select>
-                <div style="display:flex; gap:5px">
-                    <button id="saveEditBtn">${l.save}</button>
-                    <button id="cancelEditBtn" style="background:#64748b">${l.back}</button>
-                </div>
+        return `<div class="edit-box">
+                <input type="date" id="edDate" value="${t.date}"><input type="text" id="edDesc" value="${t.description}">
+                <input type="number" id="edAmt" value="${Math.abs(t.amount)}"><select id="edCat">${cats.map(c=>`<option ${t.category===c?'selected':''}>${c}</option>`).join('')}</select>
+                <div style="display:flex; gap:5px"><button id="saveEditBtn">${l.save}</button><button id="cancelEditBtn" style="background:#64748b">${l.back}</button></div>
             </div>`;
     },
 
     async saveEdit(id, isInc) {
         const amt = document.getElementById('edAmt').value;
-        await db.from('transactions').update({ 
-            date: document.getElementById('edDate').value, 
-            description: document.getElementById('edDesc').value, 
-            amount: isInc ? Math.abs(amt) : -Math.abs(amt), 
-            category: document.getElementById('edCat').value 
-        }).eq('id', id);
+        await db.from('transactions').update({ date: document.getElementById('edDate').value, description: document.getElementById('edDesc').value, amount: isInc ? Math.abs(amt) : -Math.abs(amt), category: document.getElementById('edCat').value }).eq('id', id);
         this.editingId = null; this.loadTxns();
     },
 
@@ -173,31 +169,21 @@ const app = {
         const desc = (isInc ? document.getElementById('incDesc').value : document.getElementById('expDesc').value).trim();
         const amt = parseFloat(isInc ? document.getElementById('incAmt').value : document.getElementById('expAmt').value);
         if(!desc || isNaN(amt)) return;
-        const { error } = await db.from('transactions').insert([{ 
-            user_id: this.user.id, description: desc, amount: isInc?amt:-amt, 
-            category: isInc?(this.lang==='cs'?'Příjem':'Income'):document.getElementById('expCat').value, 
-            date: d 
-        }]);
-        if (error) alert("Chyba RLS: " + error.message);
-        else { 
-            this.loadTxns(); 
-            if(isInc) document.getElementById('incAmt').value=''; 
-            else document.getElementById('expAmt').value=''; 
-        }
+        await db.from('transactions').insert([{ user_id: this.user.id, description: desc, amount: isInc?amt:-amt, category: isInc?(this.lang==='cs'?'Příjem':'Income'):document.getElementById('expCat').value, date: d }]);
+        this.loadTxns(); if(isInc) document.getElementById('incAmt').value=''; else document.getElementById('expAmt').value='';
     },
 
     async delTxn(id) { if(confirm(i18n[this.lang].confirmDel)) { await db.from('transactions').delete().eq('id', id); this.loadTxns(); } },
 
     renderCats() {
-        document.getElementById('expCat').innerHTML = this.user.custom_categories.map(c => `<option value="${c}">${c}</option>`).join('');
-        document.getElementById('catEditor').innerHTML = this.user.custom_categories.map((c, i) => `
-            <div style="display:flex; gap:5px; margin-bottom:5px">
-                <input type="text" value="${c}" class="cat-input" data-idx="${i}" style="margin:0">
-                <button class="cat-del" data-idx="${i}" style="width:auto; background:var(--expense); margin:0">✕</button>
-            </div>`).join('');
-        
-        document.querySelectorAll('.cat-input').forEach(inp => inp.onchange = (e) => this.editCat(inp.dataset.idx, e.target.value));
-        document.querySelectorAll('.cat-del').forEach(btn => btn.onclick = () => this.delCat(btn.dataset.idx));
+        const catSelect = document.getElementById('expCat');
+        if(catSelect) catSelect.innerHTML = this.user.custom_categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        const catEditor = document.getElementById('catEditor');
+        if(catEditor) {
+            catEditor.innerHTML = this.user.custom_categories.map((c, i) => `<div style="display:flex; gap:5px; margin-bottom:5px"><input type="text" value="${c}" class="cat-input" data-idx="${i}" style="margin:0"><button class="cat-del" data-idx="${i}" style="width:auto; background:var(--expense); margin:0">✕</button></div>`).join('');
+            document.querySelectorAll('.cat-input').forEach(inp => inp.onchange = (e) => this.editCat(inp.dataset.idx, e.target.value));
+            document.querySelectorAll('.cat-del').forEach(btn => btn.onclick = () => this.delCat(btn.dataset.idx));
+        }
     },
 
     async editCat(i,v) { this.user.custom_categories[i]=v; await this.savePref(); },
@@ -213,57 +199,45 @@ const app = {
 
     applyLang() {
         const l = i18n[this.lang];
-        // 1. Texty pro elementy s ID "t-neco"
+        // Překlady elementů t- ID
         Object.keys(l).forEach(key => {
             const el = document.getElementById('t-' + key);
-            if(el) {
-                if(el.tagName === 'INPUT') el.placeholder = l[key];
-                else el.innerText = l[key];
-            }
+            if(el) el.innerText = l[key];
         });
-        // 2. Ruční mapování pro tlačítka, která nemají prefix "t-"
-        if(document.getElementById('saveExpBtn')) document.getElementById('saveExpBtn').innerText = l.save;
-        if(document.getElementById('saveIncBtn')) document.getElementById('saveIncBtn').innerText = l.save;
-        if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').innerText = l.logout;
-        if(document.getElementById('closeSettings')) document.getElementById('closeSettings').innerText = l.close;
-        if(document.getElementById('loginBtn')) document.getElementById('loginBtn').innerText = l.loginBtn;
-        if(document.getElementById('regBtn')) document.getElementById('regBtn').innerText = l.regBtn;
-        
-        // 3. Placeholdery
-        if(document.getElementById('expDesc')) document.getElementById('expDesc').placeholder = l.placeholderExp;
-        if(document.getElementById('incDesc')) document.getElementById('incDesc').placeholder = l.placeholderInc;
-        if(document.getElementById('loginUser')) document.getElementById('loginUser').placeholder = l.userPH;
-        if(document.getElementById('regUser')) document.getElementById('regUser').placeholder = l.userPH;
-        if(document.getElementById('loginPass')) document.getElementById('loginPass').placeholder = l.passPH;
-        if(document.getElementById('regPass')) document.getElementById('regPass').placeholder = l.passPH;
-        
-        document.getElementById('stLang').value = this.lang;
-        document.getElementById('stCurr').value = this.curr;
+
+        // Tlačítka a placeholdery
+        const map = {
+            'saveExpBtn': l.save, 'saveIncBtn': l.save, 'logoutBtn': l.logout, 
+            'closeSettings': l.close, 'loginBtn': l.loginBtn, 'regBtn': l.regBtn,
+            'addCatBtn': '+ ' + l.add
+        };
+        Object.keys(map).forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = map[id]; });
+
+        const phs = {
+            'expDesc': l.placeholderExp, 'incDesc': l.placeholderInc,
+            'loginUser': l.userPH, 'regUser': l.userPH, 'loginPass': l.passPH, 'regPass': l.passPH
+        };
+        Object.keys(phs).forEach(id => { if(document.getElementById(id)) document.getElementById(id).placeholder = phs[id]; });
+
+        if(document.getElementById('stLang')) document.getElementById('stLang').value = this.lang;
+        if(document.getElementById('stCurr')) document.getElementById('stCurr').value = this.curr;
         this.updateThemeBtn();
     },
 
     toggleLang() { this.lang = this.lang === 'cs' ? 'en' : 'cs'; localStorage.setItem('lang', this.lang); this.applyLang(); },
     showSettings() { document.getElementById('settingsOverlay').classList.remove('hidden'); },
     hideSettings() { document.getElementById('settingsOverlay').classList.add('hidden'); },
-    toggleAuth(reg) { 
-        document.getElementById('loginBox').classList.toggle('hidden', reg); 
-        document.getElementById('regBox').classList.toggle('hidden', !reg); 
-        this.applyLang();
-    },
+    toggleAuth(reg) { document.getElementById('loginBox').classList.toggle('hidden', reg); document.getElementById('regBox').classList.toggle('hidden', !reg); this.applyLang(); },
     calcDays() {
         const today = new Date(); const target = new Date(today.getFullYear(), today.getMonth() + 1, 1);
         let wd = 0; while(true) { let d = target.getDay(); if(d !== 0 && d !== 6) wd++; if(wd === 2) break; target.setDate(target.getDate()+1); }
         return Math.max(1, Math.ceil((target - today) / 86400000));
     },
     updateChart(list) {
-        const ctx = document.getElementById('myChart');
+        const ctx = document.getElementById('myChart'); if(!ctx) return;
         const data = {}; list.filter(t => t.amount < 0).forEach(t => data[t.category] = (data[t.category]||0) + Math.abs(t.amount));
         if(chart) chart.destroy();
-        chart = new Chart(ctx, { 
-            type: 'doughnut', 
-            data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#71717a', '#22c55e'] }] }, 
-            options: { plugins: { legend: { display:false } } } 
-        });
+        chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#71717a', '#22c55e'] }] }, options: { plugins: { legend: { display:false } } } });
     },
     cycleTheme() {
         if (this.theme === 'light') this.theme = 'dark';
