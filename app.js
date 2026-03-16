@@ -6,7 +6,7 @@ const db = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 let chart = null;
 
 const app = {
-    user: null, txns: [], curMonth: 'all', editingId: null, isAdmin: false,
+    user: null, txns: [], curMonth: 'all', isAdmin: false,
     lang: localStorage.getItem('lang') || 'cs', 
     curr: 'Kč', 
     theme: localStorage.getItem('theme') || 'light',
@@ -27,7 +27,6 @@ const app = {
 
     setupEventListeners() {
         const safeClick = (id, fn) => { const el = document.getElementById(id); if(el) el.onclick = fn; };
-        
         safeClick('loginBtn', () => this.login());
         safeClick('regBtn', () => this.register());
         safeClick('logoutBtn', () => this.logout());
@@ -56,26 +55,19 @@ const app = {
                 this.curr = profile.currency || this.curr;
                 this.user.custom_categories = profile.custom_categories || this.defCats;
                 this.isAdmin = (profile.role === 'admin');
-            } else {
-                this.user.custom_categories = this.defCats;
             }
-        } catch (err) { console.warn(err); }
+        } catch (err) { console.error(err); }
         this.init();
     },
 
     init() {
         document.getElementById('authSection').classList.add('hidden');
         document.getElementById('mainSection').classList.remove('hidden');
-        
-        if (this.isAdmin) {
-            document.getElementById('openAdmin')?.classList.remove('hidden');
-        }
-
+        if (this.isAdmin) document.getElementById('openAdmin')?.classList.remove('hidden');
         this.applyLang();
         document.getElementById('userLabel').innerText = `👤 ${this.user.email}`;
-        const today = new Date().toISOString().slice(0,10);
-        document.getElementById('expDate').value = today; document.getElementById('incDate').value = today;
-        this.renderCats(); this.loadTxns();
+        this.renderCats(); 
+        this.loadTxns();
     },
 
     async login() {
@@ -95,13 +87,12 @@ const app = {
         if (error) return alert(error.message);
         if (data.user) {
             await db.from('app_users').insert([{ id: data.user.id, role: 'user', custom_categories: this.defCats }]);
-            alert("OK! Teď se přihlas."); this.toggleAuth(false);
+            alert("Registrace OK, přihlas se."); this.toggleAuth(false);
         }
     },
 
     async logout() { await db.auth.signOut(); location.reload(); },
 
-    // --- ADMIN SEKCE ---
     async showAdmin() {
         document.getElementById('adminOverlay').classList.remove('hidden');
         this.loadAdminData();
@@ -109,38 +100,25 @@ const app = {
     hideAdmin() { document.getElementById('adminOverlay').classList.add('hidden'); },
 
     async loadAdminData() {
-        // Anonymní statistiky
         const { count: uCount } = await db.from('app_users').select('*', { count: 'exact', head: true });
         const { count: tCount } = await db.from('transactions').select('*', { count: 'exact', head: true });
-        
         document.getElementById('statUsers').innerText = uCount || 0;
         document.getElementById('statTxns').innerText = tCount || 0;
         document.getElementById('statAvg').innerText = (tCount / (uCount || 1)).toFixed(1);
 
-        // Seznam uživatelů
         const { data: users } = await db.from('app_users').select('id, role, lang');
-        
-        document.getElementById('adminUserList').innerHTML = `
-            <div class="admin-row" style="font-weight:bold; border-bottom: 2px solid var(--border)">
-                <div>ID Uživatele</div><div>Jazyk</div><div>Akce</div>
-            </div>
-            ${users.map(u => `
-                <div class="admin-row">
-                    <div style="font-family:monospace; font-size:0.7rem">${u.id} ${u.id === this.user.id ? '<b>(Já)</b>' : ''}</div>
-                    <div>${u.lang}</div>
-                    <div>
-                        <button onclick="alert('Email s resetem hesla by byl odeslán přes Supabase Auth.')" style="padding:2px 5px; font-size:0.7rem; width:auto">Reset</button>
-                        ${u.id !== this.user.id ? `<button onclick="confirm('Opravdu smazat?') && alert('Smazáno (zatím simulace)')" style="padding:2px 5px; font-size:0.7rem; width:auto; background:var(--expense)">Smazat</button>` : ''}
-                    </div>
-                </div>
-            `).join('')}
-        `;
+        document.getElementById('adminUserList').innerHTML = users.map(u => `
+            <div class="admin-row">
+                <div style="font-size:0.7rem; font-family:monospace">${u.id}</div>
+                <div>${u.lang}</div>
+                <div><button onclick="alert('Reset poslán')" style="padding:4px; font-size:0.7rem">Reset</button></div>
+            </div>`).join('');
     },
 
-    // --- ZBYTEK LOGIKY ---
     async loadTxns() {
         const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
-        this.txns = data || []; this.updateUI();
+        this.txns = data || []; 
+        this.updateUI();
     },
 
     updateUI() {
@@ -185,12 +163,12 @@ const app = {
         if(!desc || isNaN(amt)) return;
         await db.from('transactions').insert([{ 
             user_id: this.user.id, description: desc, amount: isInc?amt:-amt, 
-            category: isInc?(this.lang==='cs'?'Příjem':'Income'):document.getElementById('expCat').value, date: d 
+            category: isInc?'Příjem':document.getElementById('expCat').value, date: d 
         }]);
         this.loadTxns();
     },
 
-    async delTxn(id) { if(confirm(i18n[this.lang].confirmDel)) { await db.from('transactions').delete().eq('id', id); this.loadTxns(); } },
+    async delTxn(id) { if(confirm('Smazat?')) { await db.from('transactions').delete().eq('id', id); this.loadTxns(); } },
 
     renderCats() {
         document.getElementById('expCat').innerHTML = this.user.custom_categories.map(c => `<option>${c}</option>`).join('');
@@ -213,8 +191,6 @@ const app = {
     applyLang() {
         const l = i18n[this.lang];
         Object.keys(l).forEach(k => { const el = document.getElementById('t-'+k); if(el) el.innerText = l[k]; });
-        const map = { 'saveExpBtn': l.save, 'saveIncBtn': l.save, 'logoutBtn': l.logout, 'closeSettings': l.close, 'loginBtn': l.loginBtn, 'regBtn': l.regBtn };
-        Object.entries(map).forEach(([id, txt]) => { const el = document.getElementById(id); if(el) el.innerText = txt; });
         this.updateThemeBtn();
     },
 
