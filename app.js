@@ -14,29 +14,31 @@ const app = {
 
     async start() {
         this.applyTheme();
+        this.applyLang(); // Spustíme překlady hned pro statické texty
         this.setupEventListeners();
+        
         const { data: { session } } = await db.auth.getSession();
-        if (session) { await this.handleAuth(session.user); } 
-        else { document.getElementById('authSection').classList.remove('hidden'); this.applyLang(); }
+        if (session) { 
+            await this.handleAuth(session.user); 
+        } else { 
+            document.getElementById('authSection').classList.remove('hidden'); 
+        }
     },
 
     setupEventListeners() {
-        const ids = ['loginBtn','regBtn','logoutBtn','toggleLangBtn','themeBtn','openSettings','closeSettings','saveExpBtn','saveIncBtn','addCatBtn'];
-        ids.forEach(id => { 
-            const el = document.getElementById(id); 
-            if(el) {
-                if(id === 'loginBtn') el.onclick = () => this.login();
-                if(id === 'regBtn') el.onclick = () => this.register();
-                if(id === 'logoutBtn') el.onclick = () => this.logout();
-                if(id === 'toggleLangBtn') el.onclick = () => this.toggleLang();
-                if(id === 'themeBtn') el.onclick = () => this.cycleTheme();
-                if(id === 'openSettings') el.onclick = () => this.showSettings();
-                if(id === 'closeSettings') el.onclick = () => this.hideSettings();
-                if(id === 'saveExpBtn') el.onclick = () => this.saveTxn(false);
-                if(id === 'saveIncBtn') el.onclick = () => this.saveTxn(true);
-                if(id === 'addCatBtn') el.onclick = () => this.addCat();
-            }
-        });
+        const safeClick = (id, fn) => { const el = document.getElementById(id); if(el) el.onclick = fn; };
+        
+        safeClick('loginBtn', () => this.login());
+        safeClick('regBtn', () => this.register());
+        safeClick('logoutBtn', () => this.logout());
+        safeClick('toggleLangBtn', () => this.toggleLang());
+        safeClick('themeBtn', () => this.cycleTheme());
+        safeClick('openSettings', () => this.showSettings());
+        safeClick('closeSettings', () => this.hideSettings());
+        safeClick('saveExpBtn', () => this.saveTxn(false));
+        safeClick('saveIncBtn', () => this.saveTxn(true));
+        safeClick('addCatBtn', () => this.addCat());
+        
         document.getElementById('toReg').onclick = (e) => { e.preventDefault(); this.toggleAuth(true); };
         document.getElementById('toLogin').onclick = (e) => { e.preventDefault(); this.toggleAuth(false); };
         document.getElementById('stLang').onchange = (e) => this.updatePref('lang', e.target.value);
@@ -45,18 +47,40 @@ const app = {
 
     async handleAuth(authUser) {
         this.user = authUser;
-        const { data: profile, error } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
-        
-        if (profile) {
-            this.lang = profile.lang || this.lang; 
-            this.curr = profile.currency || this.curr;
-            this.user.custom_categories = profile.custom_categories || this.defCats;
-            this.isAdmin = (profile.role === 'admin');
-        } else {
+        try {
+            const { data: profile } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+            if (profile) {
+                this.lang = profile.lang || this.lang; 
+                this.curr = profile.currency || this.curr;
+                this.user.custom_categories = profile.custom_categories || this.defCats;
+                // Kontrola role ADMIN (podporuje 'role' text i 'isadmin' boolean)
+                this.isAdmin = (profile.role === 'admin' || profile.isadmin === true);
+            } else {
+                this.user.custom_categories = this.defCats;
+            }
+        } catch (err) {
+            console.warn("Profil nenačten, pokračuji jako běžný uživatel.");
             this.user.custom_categories = this.defCats;
-            this.isAdmin = false;
         }
         this.init();
+    },
+
+    init() {
+        document.getElementById('authSection').classList.add('hidden');
+        document.getElementById('mainSection').classList.remove('hidden');
+        
+        if (this.isAdmin) {
+            const adminTab = document.getElementById('adminOnly');
+            if(adminTab) adminTab.classList.remove('hidden');
+        }
+
+        this.applyLang();
+        document.getElementById('userLabel').innerText = `👤 ${this.user.email}`;
+        const today = new Date().toISOString().slice(0,10);
+        document.getElementById('expDate').value = today; 
+        document.getElementById('incDate').value = today;
+        this.renderCats(); 
+        this.loadTxns();
     },
 
     async login() {
@@ -81,26 +105,10 @@ const app = {
 
     async logout() { await db.auth.signOut(); location.reload(); },
 
-    init() {
-        document.getElementById('authSection').classList.add('hidden');
-        document.getElementById('mainSection').classList.remove('hidden');
-        
-        // DŮLEŽITÉ: Admin tab
-        const adminTab = document.getElementById('adminOnly');
-        if (this.isAdmin && adminTab) {
-            adminTab.classList.remove('hidden');
-        }
-
-        this.applyLang();
-        document.getElementById('userLabel').innerText = `👤 ${this.user.email}`;
-        const today = new Date().toISOString().slice(0,10);
-        document.getElementById('expDate').value = today; document.getElementById('incDate').value = today;
-        this.renderCats(); this.loadTxns();
-    },
-
     async loadTxns() {
         const { data, error } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
-        this.txns = data || []; this.updateUI();
+        this.txns = data || []; 
+        this.updateUI();
     },
 
     updateUI() {
@@ -115,7 +123,7 @@ const app = {
         const months = ['all', ...new Set(this.txns.map(t => t.date.slice(0,7)).sort().reverse())];
         document.getElementById('monthChips').innerHTML = months.map(m => `
             <span class="chip ${this.curMonth===m?'selected':''}" data-month="${m}">
-                ${m==='all'?i18n[this.lang].all:m}
+                ${m==='all'? (i18n[this.lang].all || 'Vše') : m}
             </span>`).join('');
         
         document.querySelectorAll('.chip').forEach(c => {
@@ -199,25 +207,35 @@ const app = {
 
     applyLang() {
         const l = i18n[this.lang];
-        // Překlady elementů t- ID
+        if(!l) return;
+        
+        // 1. Texty pro t- ID
         Object.keys(l).forEach(key => {
             const el = document.getElementById('t-' + key);
             if(el) el.innerText = l[key];
         });
 
-        // Tlačítka a placeholdery
-        const map = {
+        // 2. Tlačítka
+        const btnMap = {
             'saveExpBtn': l.save, 'saveIncBtn': l.save, 'logoutBtn': l.logout, 
             'closeSettings': l.close, 'loginBtn': l.loginBtn, 'regBtn': l.regBtn,
-            'addCatBtn': '+ ' + l.add
+            'addCatBtn': '+ ' + (l.add || 'Add')
         };
-        Object.keys(map).forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = map[id]; });
+        Object.entries(btnMap).forEach(([id, text]) => {
+            const el = document.getElementById(id);
+            if(el) el.innerText = text;
+        });
 
-        const phs = {
+        // 3. Placeholdery
+        const phMap = {
             'expDesc': l.placeholderExp, 'incDesc': l.placeholderInc,
-            'loginUser': l.userPH, 'regUser': l.userPH, 'loginPass': l.passPH, 'regPass': l.passPH
+            'loginUser': l.userPH, 'regUser': l.userPH, 
+            'loginPass': l.passPH, 'regPass': l.passPH
         };
-        Object.keys(phs).forEach(id => { if(document.getElementById(id)) document.getElementById(id).placeholder = phs[id]; });
+        Object.entries(phMap).forEach(([id, text]) => {
+            const el = document.getElementById(id);
+            if(el) el.placeholder = text;
+        });
 
         if(document.getElementById('stLang')) document.getElementById('stLang').value = this.lang;
         if(document.getElementById('stCurr')) document.getElementById('stCurr').value = this.curr;
