@@ -14,7 +14,7 @@ const app = {
 
     async start() {
         this.applyTheme();
-        this.applyLang(); // Spustíme překlady hned pro statické texty
+        this.applyLang();
         this.setupEventListeners();
         
         const { data: { session } } = await db.auth.getSession();
@@ -53,13 +53,16 @@ const app = {
                 this.lang = profile.lang || this.lang; 
                 this.curr = profile.currency || this.curr;
                 this.user.custom_categories = profile.custom_categories || this.defCats;
-                // Kontrola role ADMIN (podporuje 'role' text i 'isadmin' boolean)
-                this.isAdmin = (profile.role === 'admin' || profile.isadmin === true);
+                
+                // JEDINÝ ZDROJ PRAVDY: Sloupec 'role'
+                this.isAdmin = (profile.role === 'admin');
+                console.log("Status přihlášení:", this.isAdmin ? "👑 ADMIN" : "👤 UŽIVATEL");
             } else {
                 this.user.custom_categories = this.defCats;
+                this.isAdmin = false;
             }
         } catch (err) {
-            console.warn("Profil nenačten, pokračuji jako běžný uživatel.");
+            console.warn("Chyba při načítání profilu:", err);
             this.user.custom_categories = this.defCats;
         }
         this.init();
@@ -69,9 +72,11 @@ const app = {
         document.getElementById('authSection').classList.add('hidden');
         document.getElementById('mainSection').classList.remove('hidden');
         
-        if (this.isAdmin) {
-            const adminTab = document.getElementById('adminOnly');
-            if(adminTab) adminTab.classList.remove('hidden');
+        // Zobrazení/skrytí Admin Panelu
+        const adminTab = document.getElementById('adminOnly');
+        if (adminTab) {
+            if (this.isAdmin) adminTab.classList.remove('hidden');
+            else adminTab.classList.add('hidden');
         }
 
         this.applyLang();
@@ -97,7 +102,14 @@ const app = {
         const { data, error } = await db.auth.signUp({ email, password });
         if (error) return alert(error.message);
         if (data.user) {
-            await db.from('app_users').insert([{ id: data.user.id, username: email.split('@')[0], custom_categories: this.defCats, lang: this.lang, currency: this.curr }]);
+            await db.from('app_users').insert([{ 
+                id: data.user.id, 
+                username: email.split('@')[0], 
+                custom_categories: this.defCats, 
+                lang: this.lang, 
+                currency: this.curr,
+                role: 'user' 
+            }]);
             alert("Účet vytvořen!");
             this.toggleAuth(false);
         }
@@ -203,19 +215,17 @@ const app = {
         if(key === 'curr') this.curr = val; 
         await this.savePref(); this.applyLang(); this.updateUI(); 
     },
-    async savePref() { if(this.user) await db.from('app_users').update({ custom_categories:this.user.custom_categories, lang: this.lang, currency: this.curr }).eq('id', this.user.id); },
+    async savePref() { if(this.user) await db.from('app_users').update({ custom_categories:this.user.custom_categories, lang: this.lang, currency: this.curr, role: this.isAdmin ? 'admin' : 'user' }).eq('id', this.user.id); },
 
     applyLang() {
         const l = i18n[this.lang];
         if(!l) return;
         
-        // 1. Texty pro t- ID
         Object.keys(l).forEach(key => {
             const el = document.getElementById('t-' + key);
             if(el) el.innerText = l[key];
         });
 
-        // 2. Tlačítka
         const btnMap = {
             'saveExpBtn': l.save, 'saveIncBtn': l.save, 'logoutBtn': l.logout, 
             'closeSettings': l.close, 'loginBtn': l.loginBtn, 'regBtn': l.regBtn,
@@ -226,7 +236,6 @@ const app = {
             if(el) el.innerText = text;
         });
 
-        // 3. Placeholdery
         const phMap = {
             'expDesc': l.placeholderExp, 'incDesc': l.placeholderInc,
             'loginUser': l.userPH, 'regUser': l.userPH, 
