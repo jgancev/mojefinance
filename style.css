@@ -22,12 +22,14 @@
     --border: #222;
 }
 
+* { box-sizing: border-box; }
+
 body {
-    font-family: -apple-system, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
     margin: 0;
-    transition: 0.3s;
+    transition: background 0.3s, color 0.3s;
 }
 
 .card {
@@ -41,13 +43,12 @@ body {
 
 input, select, button {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     margin: 8px 0;
     border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--card);
     color: var(--text);
-    box-sizing: border-box;
 }
 
 button {
@@ -56,6 +57,7 @@ button {
     font-weight: bold;
     border: none;
     cursor: pointer;
+    transition: opacity 0.2s;
 }
 
 button:hover { opacity: 0.9; }
@@ -64,55 +66,64 @@ button:hover { opacity: 0.9; }
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 300px 1fr 300px;
+    grid-template-columns: 320px 1fr 320px;
     gap: 20px;
     padding: 20px;
     max-width: 1400px;
     margin: 0 auto;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
     .dashboard-grid { grid-template-columns: 1fr; }
 }
 
 .txn-item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 12px;
     border-bottom: 1px solid var(--border);
 }
 
-.stat-box { text-align: center; }
-.stat-val { font-size: 1.5rem; font-weight: 800; }
+.stat-box { text-align: center; margin-bottom: 10px; }
+.stat-val { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
 
 .chip {
     display: inline-block;
-    padding: 5px 12px;
+    padding: 6px 14px;
     background: var(--border);
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     cursor: pointer;
-    margin-right: 5px;
+    margin-right: 6px;
+    margin-bottom: 6px;
 }
 .chip.selected { background: var(--primary); color: white; }
 
-.icon-btn { cursor: pointer; margin-left: 8px; opacity: 0.6; }
+.icon-btn { cursor: pointer; margin-left: 10px; opacity: 0.6; font-style: normal; }
 .icon-btn:hover { opacity: 1; }
 
-.settings-btn, .mode-btn { width: auto; padding: 8px 15px; font-size: 0.8rem; }
+.settings-btn, .mode-btn { width: auto; padding: 8px 16px; font-size: 0.85rem; }
 
-/* OPRAVA DARK MODU PRO ZAVÍRACÍ TLAČÍTKA */
-.dark #closeSettings, .amoled #closeSettings,
-.dark #closeAdmin, .amoled #closeAdmin {
-    background: #334155;
-    color: #f1f5f9;
+/* Overlay (Modaly) */
+.overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
 }
 
 .admin-row {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;
+    gap: 10px;
     align-items: center;
     padding: 10px;
     border-bottom: 1px solid var(--border);
-    font-size: 0.85rem;
+}
+
+/* Oprava tlačítek v darkmodu */
+.dark #closeSettings, .amoled #closeSettings,
+.dark #closeAdmin, .amoled #closeAdmin {
+    background: #475569;
+    color: white;
 }
