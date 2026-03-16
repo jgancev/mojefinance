@@ -6,7 +6,7 @@ const db = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 let chart = null;
 
 const app = {
-    user: null, txns: [], curMonth: 'all', editingId: null,
+    user: null, txns: [], curMonth: 'all', editingId: null, isAdmin: false,
     lang: localStorage.getItem('lang') || 'cs', 
     curr: 'Kč', 
     theme: localStorage.getItem('theme') || 'light',
@@ -40,10 +40,12 @@ const app = {
     async handleAuth(authUser) {
         this.user = authUser;
         const { data: profile } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+        
         if (profile) {
             this.lang = profile.lang || this.lang; 
             this.curr = profile.currency || this.curr;
             this.user.custom_categories = profile.custom_categories || this.defCats;
+            this.isAdmin = (profile.role === 'admin'); // Zjištění role
         } else {
             this.user.custom_categories = this.defCats;
         }
@@ -76,6 +78,12 @@ const app = {
         document.getElementById('authSection').classList.add('hidden');
         document.getElementById('mainSection').classList.remove('hidden');
         this.applyLang();
+        
+        // Zobrazení Admin panelu pokud je uživatel admin
+        if (this.isAdmin) {
+            document.getElementById('adminOnly').classList.remove('hidden');
+        }
+
         document.getElementById('userLabel').innerText = `👤 ${this.user.email}`;
         const today = new Date().toISOString().slice(0,10);
         document.getElementById('expDate').value = today; document.getElementById('incDate').value = today;
@@ -103,7 +111,6 @@ const app = {
                 ${m==='all'?i18n[this.lang].all:m}
             </span>`).join('');
         
-        // Přidáme klikání na měsíce
         document.querySelectorAll('.chip').forEach(c => {
             c.onclick = () => { this.curMonth = c.dataset.month; this.updateUI(); };
         });
