@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance v0.3.9.2 (Admin Ready)</title>
+    <title>Moje Finance v0.3.9.3</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -46,7 +46,7 @@
             <div class="card">
                 <h3 style="margin-top:0; color:var(--expense)" id="t-expenses"></h3>
                 <input type="date" id="expDate">
-                <input type="text" id="expDesc">
+                <input type="text" id="expDesc" id="t-placeholderExp">
                 <input type="number" id="expAmt">
                 <select id="expCat"></select>
                 <button id="saveExpBtn" style="background: var(--expense);"></button>
@@ -54,7 +54,7 @@
             <div class="card">
                 <h3 style="margin-top:0; color:var(--income)" id="t-income"></h3>
                 <input type="date" id="incDate">
-                <input type="text" id="incDesc">
+                <input type="text" id="incDesc" id="t-placeholderInc">
                 <input type="number" id="incAmt">
                 <button id="saveIncBtn" style="background: var(--income);"></button>
             </div>
@@ -88,7 +88,7 @@
         
         <div id="adminOnly" class="hidden" style="border-top: 2px solid var(--border); margin-top: 20px; padding-top: 10px;">
             <h4 style="color: var(--primary)">👑 Admin Panel</h4>
-            <p style="font-size: 0.7rem; opacity: 0.7;">Vítej zpět, šéfe. Zde brzy přibudou globální statistiky.</p>
+            <p style="font-size: 0.7rem; opacity: 0.7;">Vítej zpět, šéfe.</p>
         </div>
 
         <button id="closeSettings" style="margin-top:20px; background:var(--text)"></button>
