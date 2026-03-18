@@ -3,67 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance App - George Style</title>
+    <title>Finance App</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg: #f2f5f9; --card: #ffffff; --text: #1e293b; --border: #e2e8f0;
-            --primary: #0066e1; --income: #22ad5c; --expense: #e60050; --hover-bg: #f8fafc;
-            --header-bg: #0066e1; --accent-purple: #9d28b0; --accent-teal: #008183;
+            --primary: #0066e1; --income: #22ad5c; --expense: #e60050; --hover-bg: #f1f5f9;
+            --accent-purple: #9d28b0; --accent-teal: #008183;
         }
         .dark { 
             --bg: #0f1115; --card: #1c1e26; --text: #f8fafc; --border: #2d313d; 
-            --hover-bg: #262933; --header-bg: #111218;
+            --hover-bg: #2d3139; 
         }
 
         * { box-sizing: border-box; }
         body {
-            font-family: -apple-system, Segoe UI, sans-serif;
+            font-family: -apple-system, sans-serif;
             background: var(--bg); color: var(--text);
-            margin: 0; transition: all 0.3s ease;
-            overflow-x: hidden;
-        }
-
-        /* George-style nádechy (glow) */
-        body::before {
-            content: ""; position: fixed; top: -100px; right: -100px; width: 400px; height: 400px;
-            background: radial-gradient(circle, rgba(0,102,225,0.08) 0%, rgba(0,0,0,0) 70%);
-            z-index: -1; pointer-events: none;
+            margin: 0; transition: background 0.3s;
+            /* Jemný nádech v pozadí */
+            background-image: radial-gradient(circle at top right, rgba(0,102,225,0.05), transparent 400px);
         }
 
         .header-main {
-            background: var(--header-bg); color: white;
-            padding: 20px; transition: background 0.3s;
-        }
-        .header-content {
-            max-width: 1200px; margin: 0 auto;
+            max-width: 1500px; margin: 0 auto;
             display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px;
         }
 
         #userBtn {
-            background: none; border: none; color: white;
-            font-weight: 700; cursor: pointer; font-size: 1.4rem; padding: 0;
+            background: none; border: none; color: inherit;
+            font-weight: 800; cursor: pointer; padding: 5px 10px;
+            border-radius: 6px; font-size: 1rem; width: auto;
         }
 
         .dashboard-grid {
             display: grid; grid-template-columns: 320px 1fr 320px;
-            gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto;
+            gap: 20px; padding: 20px; max-width: 1500px; margin: 0 auto;
         }
 
         @media (max-width: 1100px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr; padding: 10px; }
         }
 
-        /* Karty s barevným proužkem navrhu */
+        /* Karty s George linkami */
         .card {
             background: var(--card); border: 1px solid var(--border);
-            padding: 24px; border-radius: 16px; margin-bottom: 20px;
+            padding: 20px; border-radius: 12px; margin-bottom: 15px;
             position: relative; overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         .card::before {
             content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-            background: var(--primary); opacity: 0.8;
+            background: var(--primary);
         }
         .card.income-card::before { background: var(--income); }
         .card.expense-card::before { background: var(--expense); }
@@ -71,45 +62,38 @@
         .card.teal-card::before { background: var(--accent-teal); }
 
         input, select, button {
-            width: 100%; padding: 14px; margin: 8px 0;
-            border-radius: 10px; border: 1px solid var(--border);
-            background: var(--bg); color: var(--text); font-size: 1rem;
+            width: 100%; padding: 12px; margin: 8px 0;
+            border-radius: 8px; border: 1px solid var(--border);
+            background: var(--card); color: var(--text); font-size: 1rem;
         }
 
-        button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 700; transition: transform 0.1s; }
-        button:active { transform: scale(0.98); }
+        button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
+        .hidden { display: none !important; }
 
-        #balToday { font-size: 2.4rem; font-weight: 800; letter-spacing: -1px; }
-        #balToday span { font-size: 1.2rem; vertical-align: super; margin-left: 2px; }
-
-        /* HISTORIE & MENU */
         .txn-item {
             position: relative; display: flex; justify-content: space-between; 
-            padding: 16px 0; border-bottom: 1px solid var(--border);
+            padding: 12px 0; border-bottom: 1px solid var(--border);
         }
-        .txn-main-info strong { font-size: 1.05rem; }
-        .txn-main-info small { color: #888; }
-
-        .menu-container { position: relative; margin-left: 15px; }
-        .menu-button { cursor: pointer; padding: 5px 10px; color: var(--primary); font-size: 1.4rem; }
+        
+        .menu-container { position: relative; display: inline-block; margin-left: 10px; }
+        .menu-button { cursor: pointer; padding: 0 8px; font-weight: bold; font-size: 1.2rem; color: var(--primary); }
         .menu-options { 
             display: none; position: absolute; right: 0; top: 100%; 
             background: var(--card); border: 1px solid var(--border); 
-            border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 100; overflow: hidden;
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; 
         }
-        .menu-options span { display: block; padding: 12px 20px; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+        .menu-options span { display: block; padding: 10px 15px; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
         .menu-options span:hover { background: var(--hover-bg); }
 
         .chip {
-            display: inline-block; padding: 8px 16px; background: var(--border);
-            border-radius: 20px; font-size: 0.85rem; cursor: pointer; margin-right: 8px; font-weight: 600;
+            display: inline-block; padding: 6px 12px; background: var(--border);
+            border-radius: 20px; font-size: 0.8rem; cursor: pointer; margin-right: 5px;
         }
         .chip.selected { background: var(--primary); color: white; }
 
-        .hidden { display: none !important; }
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000;
+            background: rgba(0,0,0,0.8); z-index: 1000;
             display: flex; align-items: center; justify-content: center;
         }
     </style>
@@ -118,75 +102,68 @@
 
 <div id="authSection" class="hidden">
     <div class="card" style="max-width: 400px; margin: 80px auto;">
-        <h2 style="margin-top:0">Vítejte</h2>
-        <input type="email" id="loginUser" placeholder="Uživatelský email">
+        <h2>Přihlášení</h2>
+        <input type="email" id="loginUser" placeholder="Email">
         <input type="password" id="loginPass" placeholder="Heslo">
-        <button id="loginBtn">Přihlásit se</button>
+        <button id="loginBtn">Vstoupit</button>
     </div>
 </div>
 
 <div id="mainSection" class="hidden">
     <div class="header-main">
-        <div class="header-content">
-            <button id="userBtn">Přehled</button>
-            <button id="themeBtn" style="width:auto; padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">🌓 Režim</button>
-        </div>
+        <button id="userBtn"></button>
+        <button id="themeBtn" style="width:auto; padding: 8px 15px;">🌓 Přepnout režim</button>
     </div>
     
     <div class="dashboard-grid">
         <div id="leftCol">
             <div class="card">
-                <p style="margin:0; opacity:0.6; font-weight:600">Celkový zůstatek</p>
-                <div id="balToday">0<span>.00</span></div>
+                <div id="balToday" style="font-size:2.2rem; font-weight:800; text-align:center">0</div>
+                <p style="text-align:center; opacity:0.6; margin:0">Zůstatek</p>
             </div>
             <div class="card expense-card">
-                <h3 style="color:var(--expense); margin-top:0">Nový výdaj</h3>
+                <h3 style="color:var(--expense); margin-top:0">Výdaj</h3>
                 <input type="date" id="expDate">
-                <input type="text" id="expDesc" placeholder="Za co?">
+                <input type="text" id="expDesc" placeholder="Popis">
                 <input type="number" id="expAmt" placeholder="Částka">
                 <select id="expCat"></select>
-                <button id="saveExpBtn" style="background:var(--expense)">Uložit výdaj</button>
+                <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
             </div>
             <div class="card income-card">
-                <h3 style="color:var(--income); margin-top:0">Nový příjem</h3>
+                <h3 style="color:var(--income); margin-top:0">Příjem</h3>
                 <input type="date" id="incDate">
-                <input type="text" id="incDesc" placeholder="Odkud?">
+                <input type="text" id="incDesc" placeholder="Popis příjmu">
                 <input type="number" id="incAmt" placeholder="Částka">
-                <button id="saveIncBtn" style="background:var(--income)">Uložit příjem</button>
+                <button id="saveIncBtn" style="background:var(--income)">Uložit</button>
             </div>
         </div>
 
         <div id="midCol">
             <div class="card">
-                <h3 style="margin-top:0">Historie transakcí</h3>
-                <div id="monthChips" style="overflow-x:auto; white-space:nowrap; margin-bottom:20px; padding-bottom:10px"></div>
+                <h3 style="margin-top:0">Historie</h3>
+                <div id="monthChips" style="overflow-x:auto; white-space:nowrap; margin-bottom:15px"></div>
                 <div id="txnList"></div>
             </div>
         </div>
 
         <div id="rightCol">
             <div class="card teal-card">
-                <p style="text-align:center; margin:0; opacity:0.6; font-weight:600">Denní rozpočet</p>
+                <p style="text-align:center; margin:0; opacity:0.6">Denní limit</p>
                 <div id="dailyAvg" style="font-size:2rem; font-weight:800; text-align:center">0</div>
             </div>
-            <div class="card purple-card">
-                <h3 style="margin-top:0; font-size:1rem; opacity:0.7">Rozložení výdajů</h3>
-                <canvas id="myChart"></canvas>
-            </div>
-            <button id="logoutBtn" style="background:var(--border); color:var(--text); opacity:0.7">Odhlásit se</button>
+            <div class="card purple-card"><canvas id="myChart"></canvas></div>
+            <button id="logoutBtn" style="background:var(--border); color:var(--text)">Odhlásit se</button>
         </div>
     </div>
 </div>
 
 <div id="settingsOverlay" class="overlay hidden">
-    <div class="card" style="width:95%; max-width:400px; border-top: 4px solid var(--primary);">
-        <h2 style="margin-top:0">Nastavení profilu</h2>
-        <label style="font-size:0.8rem; font-weight:700">Měna aplikace</label>
-        <select id="stCurr"><option value="Kč">Kč - Koruna česká</option><option value="€">€ - Euro</option></select>
-        <label style="font-size:0.8rem; font-weight:700; display:block; margin-top:15px">Kategorie výdajů</label>
-        <div id="catEditor" style="margin-top:5px"></div>
+    <div class="card" style="width:95%; max-width:400px">
+        <h2>Nastavení</h2>
+        <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
+        <div id="catEditor"></div>
         <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat kategorii</button>
-        <button id="closeSettings" style="margin-top:20px; background:var(--text); color:var(--card)">Uložit a zavřít</button>
+        <button id="closeSettings" style="margin-top:20px;">Zavřít</button>
     </div>
 </div>
 
@@ -201,7 +178,7 @@
         user: null, txns: [], curMonth: 'all', 
         curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
         editingId: null,
-        defCats: ["Jídlo 🍕", "Bydlení 🏠", "Doprava 🚗", "Nákupy 🛍️", "Ostatní ⚙️"],
+        defCats: ["Jídlo 🍕", "Běžné 🏠", "Nákupy 🛍️", "Ostatní ⚙️"],
 
         async start() {
             this.applyTheme();
@@ -243,6 +220,7 @@
         init() {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
+            document.getElementById('userBtn').innerText = this.user.email;
             document.getElementById('stCurr').value = this.curr;
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('expDate').value = today;
@@ -270,11 +248,7 @@
         updateUI() {
             const now = new Date().toISOString().slice(0,10);
             const total = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
-            
-            // Formátování zůstatku a-la George (horní index)
-            const mainPart = Math.floor(total).toLocaleString();
-            const centsPart = (Math.abs(total) % 1).toFixed(2).slice(2);
-            document.getElementById('balToday').innerHTML = `${mainPart}<span>,${centsPart} ${this.curr}</span>`;
+            document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
             
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
             const listEl = document.getElementById('txnList');
@@ -287,31 +261,31 @@
                 
                 if (isEditing) {
                     div.innerHTML = `
-                    <div style="width:100%; padding:10px; background:var(--bg); border-radius:12px;">
+                    <div style="width:100%; background:var(--bg); padding:10px; border-radius:10px;">
                         <input type="date" id="edit-date-${t.id}" value="${t.date}">
                         <input type="text" id="edit-desc-${t.id}" value="${t.description}">
                         <input type="number" id="edit-amt-${t.id}" value="${Math.abs(t.amount)}">
                         ${t.amount < 0 ? `<select id="edit-cat-${t.id}">${this.user.custom_categories.map(c => `<option ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>` : ''}
-                        <div style="display:flex; gap:10px; margin-top:5px;">
+                        <div style="display:flex; gap:10px;">
                             <button onclick="app.saveInline('${t.id}', ${t.amount > 0})">Uložit</button>
                             <button onclick="app.setEdit(null)" style="background:var(--border); color:var(--text)">Zrušit</button>
                         </div>
                     </div>`;
                 } else {
                     div.innerHTML = `
-                    <div class="txn-main-info">
+                    <div>
                         <strong>${t.description}</strong><br>
-                        <small>${new Date(t.date).toLocaleDateString()} • ${t.category}</small>
+                        <small style="opacity:0.5">${new Date(t.date).toLocaleDateString()} • ${t.category}</small>
                     </div>
                     <div style="display:flex; align-items:center;">
-                        <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}; font-weight:800; font-size:1.1rem">
+                        <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}; font-weight:bold">
                             ${t.amount.toLocaleString()} ${this.curr}
                         </span>
                         <div class="menu-container">
                             <span class="menu-button" onclick="app.toggleMenu('${t.id}')">⋮</span>
                             <div class="menu-options" id="menu-${t.id}">
                                 <span onclick="app.setEdit('${t.id}')">✏️ Upravit</span>
-                                <span onclick="app.delTxn('${t.id}')">🗑️ Smazat</span>
+                                <span onclick="app.delTxn('${t.id}')">❌ Smazat</span>
                             </div>
                         </div>
                     </div>`;
@@ -392,7 +366,7 @@
             const ctx = document.getElementById('myChart');
             const data = {}; list.filter(t => t.amount < 0).forEach(t => data[t.category] = (data[t.category] || 0) + Math.abs(t.amount));
             if (chart) chart.destroy();
-            chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#0066e1', '#22ad5c', '#9d28b0', '#e60050', '#008183'] }] }, options: { plugins: { legend: { display: false } }, cutout: '70%' } });
+            chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#0066e1', '#22ad5c', '#9d28b0', '#e60050', '#008183'] }] }, options: { plugins: { legend: { display: false } } } });
         },
 
         cycleTheme() {
