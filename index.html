@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance App</title>
+    <title>Moje Finance</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-
-<div id="authSection" class="hidden">
-    <div class="card" style="max-width: 380px; margin: 100px auto;">
+<body class="dark"> <div id="authSection" class="hidden">
+    <div class="card" style="max-width: 380px; margin: 100px auto; padding: 20px;">
         <h2>Přihlášení</h2>
         <input type="email" id="loginUser" placeholder="Email">
         <input type="password" id="loginPass" placeholder="Heslo">
@@ -20,7 +18,7 @@
 
 <div id="mainSection" class="hidden">
     <div class="header-main">
-        <strong id="userLabel"></strong>
+        <strong id="userLabel">Načítání...</strong>
         <div>
             <button id="themeBtn" style="width:auto">🌓 Mode</button>
             <button id="openSettings" style="width:auto; margin-left:5px">⚙️</button>
@@ -34,19 +32,19 @@
                 <p style="text-align:center; opacity:0.7; margin:0">Zůstatek</p>
             </div>
             <div class="card">
-                <h3 style="color:var(--expense)">Výdaj</h3>
+                <h3 style="color:#ef4444">Výdaj</h3>
                 <input type="date" id="expDate">
                 <input type="text" id="expDesc" placeholder="Popis">
-                <input type="number" id="expAmt">
+                <input type="number" id="expAmt" placeholder="Částka">
                 <select id="expCat"></select>
-                <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
+                <button id="saveExpBtn" style="background:#ef4444">Uložit výdaj</button>
             </div>
             <div class="card">
-                <h3 style="color:var(--income)">Příjem</h3>
+                <h3 style="color:#10b981">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis">
-                <input type="number" id="incAmt">
-                <button id="saveIncBtn" style="background:var(--income)">Uložit</button>
+                <input type="number" id="incAmt" placeholder="Částka">
+                <button id="saveIncBtn" style="background:#10b981">Uložit příjem</button>
             </div>
         </div>
 
@@ -64,7 +62,7 @@
                 <div id="dailyAvg" style="font-size:2rem; font-weight:800; text-align:center">0</div>
             </div>
             <div class="card"><canvas id="myChart"></canvas></div>
-            <button id="logoutBtn" style="background:var(--border); color:var(--text)">Odhlásit se</button>
+            <button id="logoutBtn" style="background:#2d3139; color:#f8fafc">Odhlásit se</button>
         </div>
     </div>
 </div>
@@ -74,8 +72,8 @@
         <h2>Nastavení</h2>
         <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
         <div id="catEditor"></div>
-        <button id="addCatBtn">+ Přidat</button>
-        <button id="closeSettings" style="margin-top:10px">Zavřít</button>
+        <button id="addCatBtn">+ Přidat kategorii</button>
+        <button id="closeSettings" style="margin-top:20px; background:#1e293b; color:white">Zavřít</button>
     </div>
 </div>
 
