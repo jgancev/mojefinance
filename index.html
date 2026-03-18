@@ -190,10 +190,16 @@
     <div class="card settings-card">
         <div class="tab-nav">
             <span class="tab-link active" onclick="app.switchTab('general')">Obecné</span>
-            <span class="tab-link" onclick="app.switchTab('admin')">Admin</span>
+            <span class="tab-link id-admin-tab hidden" onclick="app.switchTab('admin')">Admin</span>
         </div>
 
         <div id="tab-general" class="tab-content">
+            <div style="margin-bottom: 15px;">
+                <label style="font-size:0.8rem; font-weight:bold">Změna hesla</label>
+                <input type="password" id="newPassword" placeholder="Nové heslo">
+                <button id="changePassBtn" style="padding: 8px; font-size: 0.9rem;">Aktualizovat heslo</button>
+            </div>
+            <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">
             <label style="font-size:0.8rem; font-weight:bold">Měna</label>
             <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
             <label style="font-size:0.8rem; font-weight:bold; display:block; margin-top:10px">Kategorie a barvy grafu</label>
@@ -223,6 +229,7 @@
         user: null, txns: [], curMonth: 'all', 
         curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
         editingId: null,
+        userRole: 'user', 
         palette: ["#4a90e2", "#50b83c", "#f5a623", "#d0021b", "#9013fe", "#41b3b3", "#7b8894", "#e94e77", "#a3be8c", "#5e81ac"],
         defCats: [
             { name: "Jídlo 🍕", color: "#4a90e2" },
@@ -254,6 +261,13 @@
             get('loginBtn').onclick = () => {
                 const isLogin = get('authTitle').innerText === 'Přihlášení';
                 if (isLogin) this.login(); else this.register();
+            };
+
+            get('changePassBtn').onclick = async () => {
+                const newPass = get('newPassword').value;
+                if (newPass.length < 6) return alert("Heslo musí mít aspoň 6 znaků.");
+                const { error } = await db.auth.updateUser({ password: newPass });
+                if (error) alert(error.message); else { alert("Heslo změněno!"); get('newPassword').value = ''; }
             };
 
             get('logoutBtn').onclick = () => this.logout();
@@ -291,6 +305,7 @@
         async logout() { await db.auth.signOut(); location.reload(); },
 
         switchTab(tab) {
+            if (tab === 'admin' && this.userRole !== 'admin') tab = 'general';
             document.querySelectorAll('.tab-link').forEach(l => l.classList.toggle('active', l.innerText.toLowerCase().includes(tab)));
             document.getElementById('tab-general').classList.toggle('hidden', tab !== 'general');
             document.getElementById('tab-admin').classList.toggle('hidden', tab !== 'admin');
@@ -300,11 +315,10 @@
         async loadAdminData() {
             const container = document.getElementById('adminUserList');
             const { data: users } = await db.from('app_users').select('*');
-            let html = '<table class="admin-table"><tr><th>Email</th><th>Akce</th></tr>';
+            let html = '<table class="admin-table"><tr><th>Uživatel</th><th>Role</th><th>Akce</th></tr>';
             if (users) {
                 users.forEach(u => {
-                    html += `<tr><td>${u.email || 'Neznámý'}</td><td>
-                        <button class="btn-small" onclick="app.adminResetPass('${u.id}')">Heslo</button>
+                    html += `<tr><td>${u.display_name || 'Uživatel'}</td><td>${u.role || 'user'}</td><td>
                         <button class="btn-small" style="background:#e60050" onclick="app.adminDeleteUser('${u.id}')">Smazat</button>
                     </td></tr>`;
                 });
@@ -313,13 +327,8 @@
             container.innerHTML = html;
         },
 
-        async adminResetPass(userId) {
-            const newPass = prompt("Nové heslo:");
-            if (newPass) alert("Funkce vyžaduje Edge Function (zabezpečení).");
-        },
-
         async adminDeleteUser(userId) {
-            if (confirm("Smazat uživatele?")) {
+            if (confirm("Smazat všechna data tohoto uživatele?")) {
                 await db.from('transactions').delete().eq('user_id', userId);
                 await db.from('app_users').delete().eq('id', userId);
                 this.loadAdminData();
@@ -328,14 +337,33 @@
 
         async handleAuth(authUser) {
             this.user = authUser;
-            const { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
-            if (prof) {
-                this.curr = prof.currency || 'Kč';
-                const rawCats = prof.custom_categories || this.defCats;
-                this.user.custom_categories = rawCats.map((c, i) => 
-                    typeof c === 'string' ? { name: c, color: this.palette[i % this.palette.length] } : c
-                );
+            let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+            
+            const nick = authUser.email.split('@')[0]; // Bezpečná identifikace
+
+            if (!prof) {
+                const newProf = { 
+                    id: authUser.id, 
+                    display_name: nick, 
+                    currency: 'Kč', 
+                    custom_categories: this.defCats,
+                    role: 'user' 
+                };
+                await db.from('app_users').insert([newProf]);
+                prof = newProf;
+            } else if (!prof.display_name) {
+                // Pokud už profil existuje, ale nemá přezdívku, doplníme ji
+                await db.from('app_users').update({ display_name: nick }).eq('id', authUser.id);
             }
+
+            this.curr = prof.currency || 'Kč';
+            this.user.custom_categories = prof.custom_categories;
+            this.userRole = prof.role || 'user';
+            
+            if (this.userRole === 'admin') {
+                document.querySelector('.id-admin-tab').classList.remove('hidden');
+            }
+
             this.init();
         },
 
@@ -387,9 +415,12 @@
                 listEl.appendChild(div);
             });
             this.renderMonthChips();
-            this.updateChart(filtered);
             this.renderCategoryBreakdown(filtered);
             this.calcDaily(total);
+
+            const hasExpenses = filtered.some(t => t.amount < 0);
+            if (hasExpenses) { this.updateChart(filtered); } 
+            else if (chart) { chart.destroy(); chart = null; }
         },
 
         renderCategoryBreakdown(list) {
