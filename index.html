@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance</title>
+    <title>Finance App</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -20,10 +20,8 @@
 
 <div id="mainSection" class="hidden">
     <div class="header-main">
-        <div id="userInfo">
-            <strong id="userLabel"></strong>
-        </div>
-        <div id="headerActions">
+        <strong id="userLabel"></strong>
+        <div>
             <button id="themeBtn" style="width:auto">🌓 Mode</button>
             <button id="openSettings" style="width:auto; margin-left:5px">⚙️</button>
             <button id="openAdmin" class="hidden" style="width:auto; margin-left:5px; background:#a855f7">👑 Admin</button>
@@ -33,14 +31,14 @@
     <div class="dashboard-grid">
         <div id="leftCol">
             <div class="card">
-                <div class="stat-val" id="balToday">0</div>
-                <p style="text-align:center; margin:0; font-size:0.9rem; opacity:0.7">Zůstatek</p>
+                <div id="balToday" style="font-size:2rem; font-weight:800; text-align:center">0</div>
+                <p style="text-align:center; opacity:0.7; margin:0">Zůstatek</p>
             </div>
             <div class="card">
                 <h3 style="color:var(--expense)">Výdaj</h3>
                 <input type="date" id="expDate">
                 <input type="text" id="expDesc" placeholder="Popis">
-                <input type="number" id="expAmt" placeholder="Částka">
+                <input type="number" id="expAmt">
                 <select id="expCat"></select>
                 <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
             </div>
@@ -64,7 +62,7 @@
         <div id="rightCol">
             <div class="card">
                 <p style="text-align:center; margin:0">Denní limit</p>
-                <div id="dailyAvg" style="font-size: 1.8rem; font-weight: 800; text-align:center">0</div>
+                <div id="dailyAvg" style="font-size:2rem; font-weight:800; text-align:center">0</div>
             </div>
             <div class="card"><canvas id="myChart"></canvas></div>
             <button id="logoutBtn" style="background:var(--border); color:var(--text)">Odhlásit se</button>
@@ -76,7 +74,6 @@
     <div class="card" style="width:90%; max-width:400px">
         <h2>Nastavení</h2>
         <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
-        <h4>Kategorie</h4>
         <div id="catEditor"></div>
         <button id="addCatBtn">+ Přidat</button>
         <button id="closeSettings" style="margin-top:10px">Zavřít</button>
