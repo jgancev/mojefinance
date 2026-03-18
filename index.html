@@ -147,8 +147,18 @@
         }
         .settings-card {
             width: 95%; max-width: 550px; height: 550px; display: flex; flex-direction: column;
+            position: relative;
         }
+        .close-x {
+            position: absolute; top: 15px; right: 15px; font-size: 1.5rem; 
+            cursor: pointer; opacity: 0.5; font-weight: bold; z-index: 10;
+        }
+        .close-x:hover { opacity: 1; }
         .tab-content { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
+
+        .settings-footer {
+            display: flex; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;
+        }
     </style>
 </head>
 <body class="dark">
@@ -221,7 +231,8 @@
 </div>
 
 <div id="settingsOverlay" class="overlay hidden">
-    <div class="card settings-card">
+    <div class="card settings-card" id="settingsModal">
+        <span class="close-x" id="closeX">×</span>
         <div class="tab-nav">
             <span class="tab-link active" onclick="app.switchTab('general')">Obecné</span>
             <span class="tab-link" onclick="app.switchTab('security')">Zabezpečení</span>
@@ -229,7 +240,10 @@
 
         <div id="tab-general" class="tab-content">
             <label style="font-size:0.8rem; font-weight:bold">Měna</label>
-            <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
+            <select id="stCurr" onchange="app.tempSettings.curr = this.value">
+                <option value="Kč">Kč</option>
+                <option value="€">€</option>
+            </select>
             <label style="font-size:0.8rem; font-weight:bold; display:block; margin-top:10px">Kategorie a barvy grafu</label>
             <div id="catEditor" style="margin-top:5px"></div>
             <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat kategorii</button>
@@ -242,7 +256,10 @@
             <button id="changePassBtn">Aktualizovat heslo</button>
         </div>
 
-        <button id="closeSettings" style="margin-top:20px;">Zavřít</button>
+        <div class="settings-footer">
+            <button id="saveSettingsBtn">Uložit změny</button>
+            <button id="cancelSettingsBtn" style="background:var(--border); color:var(--text)">Zrušit</button>
+        </div>
     </div>
 </div>
 
@@ -257,6 +274,7 @@
         user: null, txns: [], curMonth: 'all', 
         curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
         editingId: null,
+        tempSettings: { curr: 'Kč', cats: [] }, // Dočasné úložiště pro změny
         palette: ["#4a90e2", "#50b83c", "#f5a623", "#d0021b", "#9013fe", "#41b3b3", "#7b8894", "#e94e77", "#a3be8c", "#5e81ac"],
         defCats: [
             { name: "Jídlo 🍕", color: "#4a90e2" },
@@ -290,12 +308,16 @@
             };
             get('logoutBtn').onclick = () => this.logout();
             get('themeBtn').onclick = () => this.cycleTheme();
-            get('userBtn').onclick = () => { get('settingsOverlay').classList.remove('hidden'); this.switchTab('general'); };
-            get('closeSettings').onclick = () => get('settingsOverlay').classList.add('hidden');
+            get('userBtn').onclick = () => this.openSettings();
+            
+            get('settingsOverlay').onclick = (e) => { if(e.target.id === 'settingsOverlay') this.closeSettings(); };
+            get('closeX').onclick = () => this.closeSettings();
+            get('cancelSettingsBtn').onclick = () => this.closeSettings();
+            get('saveSettingsBtn').onclick = () => this.saveFinalSettings();
+
             get('saveExpBtn').onclick = () => this.saveTxn(false);
             get('saveIncBtn').onclick = () => this.saveTxn(true);
             get('addCatBtn').onclick = () => this.addCat();
-            get('stCurr').onchange = (e) => this.updateCurr(e.target.value);
             get('changePassBtn').onclick = () => this.changePassword();
             
             document.addEventListener('click', e => {
@@ -322,6 +344,37 @@
         },
 
         async logout() { await db.auth.signOut(); location.reload(); },
+
+        openSettings() {
+            // Při otevření zkopírujeme aktuální stav do dočasného
+            this.tempSettings.curr = this.curr;
+            this.tempSettings.cats = JSON.parse(JSON.stringify(this.user.custom_categories));
+            document.getElementById('stCurr').value = this.tempSettings.curr;
+            this.renderCats(true);
+            document.getElementById('settingsOverlay').classList.remove('hidden');
+            this.switchTab('general');
+        },
+
+        closeSettings() {
+            document.getElementById('settingsOverlay').classList.add('hidden');
+        },
+
+        async saveFinalSettings() {
+            const { error } = await db.from('app_users').update({ 
+                custom_categories: this.tempSettings.cats, 
+                currency: this.tempSettings.curr 
+            }).eq('id', this.user.id);
+            
+            if (!error) {
+                this.curr = this.tempSettings.curr;
+                this.user.custom_categories = JSON.parse(JSON.stringify(this.tempSettings.cats));
+                this.renderCats();
+                this.updateUI();
+                this.closeSettings();
+            } else {
+                alert("Chyba při ukládání: " + error.message);
+            }
+        },
 
         switchTab(tab) {
             document.querySelectorAll('.tab-link').forEach(l => {
@@ -356,14 +409,10 @@
             }
 
             this.curr = prof.currency || 'Kč';
+            this.user.custom_categories = prof.custom_categories && prof.custom_categories.length > 0 
+                ? prof.custom_categories 
+                : JSON.parse(JSON.stringify(this.defCats));
             
-            if (prof.custom_categories && Array.isArray(prof.custom_categories) && prof.custom_categories.length > 0) {
-                this.user.custom_categories = prof.custom_categories;
-            } else {
-                this.user.custom_categories = JSON.parse(JSON.stringify(this.defCats));
-                // Okamžitý zápis identický jako v transakcích
-                await db.from('app_users').update({ custom_categories: this.user.custom_categories }).eq('id', this.user.id);
-            }
             this.init();
         },
 
@@ -371,7 +420,6 @@
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
             document.getElementById('userBtn').innerText = this.user.email;
-            document.getElementById('stCurr').value = this.curr;
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('expDate').value = today;
             document.getElementById('incDate').value = today;
@@ -476,41 +524,31 @@
             document.getElementById(pre+'Amt').value = ''; document.getElementById(pre+'Desc').value = '';
         },
 
-        renderCats() {
-            const cats = this.user.custom_categories || this.defCats;
-            document.getElementById('expCat').innerHTML = cats.map(c => `<option>${c.name}</option>`).join('');
-            document.getElementById('catEditor').innerHTML = cats.map((c, i) => `
-                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
-                    <input value="${c.name}" onchange="app.editCat(${i}, 'name', this.value)" style="margin:0; flex-grow:1;">
-                    <select onchange="app.editCat(${i}, 'color', this.value)" style="margin:0; width:60px; padding:8px; background:${c.color}">
-                        ${this.palette.map(p => `<option value="${p}" ${p===c.color?'selected':''} style="background:${p}"></option>`).join('')}
-                    </select></div>`).join('');
-        },
-        async editCat(i, key, v) { 
-            this.user.custom_categories[i][key] = v; 
-            await this.savePref(); 
-            this.renderCats(); 
-            this.updateUI(); 
-        },
-        async addCat() { 
-            const newColor = this.palette[this.user.custom_categories.length % this.palette.length]; 
-            this.user.custom_categories.push({ name: "Nová", color: newColor }); 
-            await this.savePref(); 
-            this.renderCats(); 
-        },
-        async updateCurr(v) { 
-            this.curr = v; 
-            await this.savePref(); 
-            this.updateUI(); 
-        },
-        async savePref() { 
-            // Zápis identický jako insert u transakcí
-            await db.from('app_users').update({ 
-                custom_categories: this.user.custom_categories, 
-                currency: this.curr 
-            }).eq('id', this.user.id);
+        renderCats(isTemp = false) {
+            const cats = isTemp ? this.tempSettings.cats : this.user.custom_categories;
+            document.getElementById('expCat').innerHTML = this.user.custom_categories.map(c => `<option>${c.name}</option>`).join('');
             
-            this.renderCats();
+            if (isTemp) {
+                document.getElementById('catEditor').innerHTML = cats.map((c, i) => `
+                    <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
+                        <input value="${c.name}" onchange="app.tempSettings.cats[${i}].name = this.value" style="margin:0; flex-grow:1;">
+                        <select onchange="app.tempSettings.cats[${i}].color = this.value; this.style.background = this.value" style="margin:0; width:60px; padding:8px; background:${c.color}">
+                            ${this.palette.map(p => `<option value="${p}" ${p===c.color?'selected':''} style="background:${p}"></option>`).join('')}
+                        </select>
+                        <button onclick="app.removeCat(${i})" style="width:40px; margin:0; background:none; color:var(--expense)">✕</button>
+                    </div>`).join('');
+            }
+        },
+
+        addCat() { 
+            const newColor = this.palette[this.tempSettings.cats.length % this.palette.length]; 
+            this.tempSettings.cats.push({ name: "Nová", color: newColor }); 
+            this.renderCats(true); 
+        },
+
+        removeCat(i) {
+            this.tempSettings.cats.splice(i, 1);
+            this.renderCats(true);
         },
 
         updateChart(list) {
