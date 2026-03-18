@@ -25,7 +25,6 @@
             padding: 15px 20px;
         }
 
-        /* Email jako tlačítko - jen na šířku textu */
         #userBtn {
             background: none; border: none; color: inherit;
             font-weight: 800; cursor: pointer; padding: 5px 10px;
@@ -57,11 +56,18 @@
         button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
 
-        /* OPRAVA HISTORIE - Flex řádek */
+        /* HISTORIE S AKCEMI */
         .txn-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 0; border-bottom: 1px solid var(--border);
         }
+        .txn-info { flex-grow: 1; }
+        .txn-actions { display: flex; gap: 8px; margin-left: 15px; }
+        .btn-icon { 
+            width: auto; padding: 5px 8px; margin: 0; background: none; 
+            color: var(--text); opacity: 0.4; font-size: 0.9rem;
+        }
+        .btn-icon:hover { opacity: 1; }
 
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -69,7 +75,6 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* TABY */
         .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
         .tab-btn { background: none; color: var(--text); padding: 10px; border-radius: 0; font-size: 0.9rem; opacity: 0.5; width: auto; margin: 0; }
         .tab-btn.active { opacity: 1; border-bottom: 2px solid var(--primary); }
@@ -116,7 +121,7 @@
                 <h3 style="color:var(--income)">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis">
-                <input type="number" id="incAmt">
+                <input type="number" id="incAmt" placeholder="Částka">
                 <button id="saveIncBtn" style="background:var(--income)">Uložit</button>
             </div>
         </div>
@@ -211,6 +216,7 @@
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
             document.getElementById('userBtn').innerText = this.user.email;
+            document.getElementById('stCurr').value = this.curr;
             if (this.isAdmin) document.getElementById('adminNav').classList.remove('hidden');
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('expDate').value = today;
@@ -248,15 +254,45 @@
             const now = new Date().toISOString().slice(0,10);
             const total = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
             document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
+            
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
             document.getElementById('txnList').innerHTML = filtered.map(t => `
                 <div class="txn-item">
-                    <span><b>${t.description}</b><br><small>${t.date}</small></span>
-                    <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount.toLocaleString()}</span>
+                    <div class="txn-info">
+                        <b>${t.description}</b><br><small>${t.date} • ${t.category}</small>
+                    </div>
+                    <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}; font-weight:bold">
+                        ${t.amount.toLocaleString()} ${this.curr}
+                    </span>
+                    <div class="txn-actions">
+                        <button class="btn-icon" onclick="app.editTxn('${t.id}')">✏️</button>
+                        <button class="btn-icon" onclick="app.deleteTxn('${t.id}')">🗑️</button>
+                    </div>
                 </div>`).join('');
+            
             this.renderMonthChips();
             this.updateChart(filtered);
             this.calcDaily(total);
+        },
+
+        async deleteTxn(id) {
+            if (confirm('Opravdu smazat?')) {
+                await db.from('transactions').delete().eq('id', id);
+                this.loadTxns();
+            }
+        },
+
+        async editTxn(id) {
+            const t = this.txns.find(x => x.id === id);
+            const newDesc = prompt('Nový popis:', t.description);
+            const newAmt = prompt('Nová částka:', t.amount);
+            if (newDesc !== null && newAmt !== null) {
+                await db.from('transactions').update({ 
+                    description: newDesc, 
+                    amount: parseFloat(newAmt) 
+                }).eq('id', id);
+                this.loadTxns();
+            }
         },
 
         calcDaily(bal) {
@@ -282,6 +318,8 @@
                 date: document.getElementById(pre+'Date').value
             }]);
             this.loadTxns();
+            document.getElementById(pre+'Amt').value = '';
+            document.getElementById(pre+'Desc').value = '';
         },
 
         renderCats() {
