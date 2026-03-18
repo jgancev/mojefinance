@@ -56,15 +56,53 @@ const app = {
     },
 
     async login() {
-        const { data, error } = await db.auth.signInWithPassword({ 
-            email: document.getElementById('loginUser').value, 
-            password: document.getElementById('loginPass').value 
-        });
+        const email = document.getElementById('loginUser').value;
+        const pass = document.getElementById('loginPass').value;
+        const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
         if (error) alert(error.message); else this.handleAuth(data.user);
     },
 
     async logout() { await db.auth.signOut(); location.reload(); },
 
+    // --- ADMIN FUNKCE ---
+    async verifyAdmin() {
+        const pass = prompt("Zadejte admin heslo pro potvrzení akce:");
+        if (!pass) return false;
+        const { error } = await db.auth.signInWithPassword({ email: this.user.email, password: pass });
+        if (error) { alert("Chybné heslo!"); return false; }
+        return true;
+    },
+
+    async showAdmin() {
+        document.getElementById('adminOverlay').classList.remove('hidden');
+        const { data: users } = await db.from('app_users').select('*');
+        const list = document.getElementById('adminUserList');
+        list.innerHTML = (users || []).map(u => `
+            <div class="txn-item" style="align-items:center; gap:10px">
+                <span style="font-size:0.85rem; flex:1"><b>${u.email || 'Bez e-mailu'}</b><br><small>${u.id.slice(0,8)}</small></span>
+                <div style="display:flex; gap:5px">
+                    <button onclick="app.adminAction('${u.id}', 'reset')" style="width:auto; padding:5px 10px; background:var(--primary); font-size:0.7rem">Reset</button>
+                    <button onclick="app.adminAction('${u.id}', 'delete')" style="width:auto; padding:5px 10px; background:var(--expense); font-size:0.7rem">Smazat</button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    async adminAction(uid, type) {
+        if (!await this.verifyAdmin()) return;
+        if (type === 'reset') {
+            const { data } = await db.from('app_users').select('email').eq('id', uid).single();
+            await db.auth.resetPasswordForEmail(data.email);
+            alert("Resetovací e-mail odeslán.");
+        } else if (type === 'delete') {
+            if (confirm("Opravdu smazat uživatele?")) {
+                await db.from('app_users').delete().eq('id', uid);
+                this.showAdmin();
+            }
+        }
+    },
+
+    // --- LOGIKA DAT ---
     async loadTxns() {
         const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: false});
         this.txns = data || [];
@@ -73,24 +111,25 @@ const app = {
 
     updateUI() {
         const now = new Date().toISOString().slice(0,10);
-        const currentBal = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
-        document.getElementById('balToday').innerText = `${currentBal.toLocaleString()} ${this.curr}`;
+        const total = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
+        document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
         
         const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
         document.getElementById('txnList').innerHTML = filtered.map(t => `
             <div class="txn-item">
-                <span><b>${t.description}</b><br><small>${t.date}</small></span>
+                <span><b>${t.description}</b><br><small>${t.date} • ${t.category}</small></span>
                 <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount.toLocaleString()}</span>
             </div>
         `).join('');
 
         this.renderMonthChips();
         this.updateChart(filtered);
-        this.calcDaily(currentBal);
+        this.calcDaily(total);
     },
 
     calcDaily(bal) {
-        const days = Math.max(1, new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate());
+        const lastDay = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+        const days = Math.max(1, lastDay - new Date().getDate());
         document.getElementById('dailyAvg').innerText = `${Math.round(bal / days).toLocaleString()} ${this.curr}`;
     },
 
@@ -143,12 +182,6 @@ const app = {
         document.body.classList.remove('dark', 'amoled');
         if (this.theme !== 'light') document.body.classList.add(this.theme);
         document.getElementById('themeBtn').innerText = `🌓 Mode: ${this.theme}`;
-    },
-
-    async showAdmin() {
-        document.getElementById('adminOverlay').classList.remove('hidden');
-        const { data: users } = await db.from('app_users').select('id, role');
-        document.getElementById('adminUserList').innerHTML = users.map(u => `<div class="txn-item">${u.id} (${u.role})</div>`).join('');
     }
 };
 
