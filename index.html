@@ -342,6 +342,7 @@
         async handleAuth(authUser) {
             this.user = authUser;
             let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+            
             if (!prof) {
                 const newProf = { 
                     id: authUser.id, 
@@ -353,13 +354,15 @@
                 await db.from('app_users').insert([newProf]);
                 prof = newProf;
             }
+
             this.curr = prof.currency || 'Kč';
-            // Robustní načtení: pokud je sloupec v DB null nebo prázdné pole, použij defCats
+            
             if (prof.custom_categories && Array.isArray(prof.custom_categories) && prof.custom_categories.length > 0) {
                 this.user.custom_categories = prof.custom_categories;
             } else {
                 this.user.custom_categories = JSON.parse(JSON.stringify(this.defCats));
-                this.savePref(); 
+                // Okamžitý zápis identický jako v transakcích
+                await db.from('app_users').update({ custom_categories: this.user.custom_categories }).eq('id', this.user.id);
             }
             this.init();
         },
@@ -501,13 +504,11 @@
             this.updateUI(); 
         },
         async savePref() { 
-            const { error } = await db.from('app_users').update({ 
+            // Zápis identický jako insert u transakcí
+            await db.from('app_users').update({ 
                 custom_categories: this.user.custom_categories, 
                 currency: this.curr 
             }).eq('id', this.user.id);
-            
-            if (error) console.error("Chyba DB:", error.message);
-            else console.log("Kategorie uloženy.");
             
             this.renderCats();
         },
