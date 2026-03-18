@@ -89,7 +89,6 @@
         }
         .chip.selected { background: var(--primary); color: white; }
 
-        /* Styly pro rozpis kategorií */
         .cat-pill {
             display: inline-block; padding: 4px 10px; border-radius: 20px; 
             color: white; font-size: 0.75rem; font-weight: bold; margin-bottom: 2px;
@@ -102,14 +101,22 @@
         .tab-nav { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); }
         .tab-link { padding: 10px; cursor: pointer; opacity: 0.6; }
         .tab-link.active { opacity: 1; border-bottom: 2px solid var(--primary); font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+        
+        /* Úprava tabulky pro admina */
+        .admin-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .admin-table th, .admin-table td { text-align: left; padding: 10px 5px; border-bottom: 1px solid var(--border); }
+        .btn-small { padding: 5px 8px; font-size: 0.75rem; width: auto; margin: 0 2px; }
 
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 1000;
             display: flex; align-items: center; justify-content: center;
         }
+        /* Fixní rozměr pro overlay kartu */
+        .settings-card {
+            width: 95%; max-width: 550px; height: 550px; display: flex; flex-direction: column;
+        }
+        .tab-content { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
     </style>
 </head>
 <body class="dark">
@@ -178,23 +185,23 @@
 </div>
 
 <div id="settingsOverlay" class="overlay hidden">
-    <div class="card" style="width:95%; max-width:500px">
+    <div class="card settings-card">
         <div class="tab-nav">
             <span class="tab-link active" onclick="app.switchTab('general')">Obecné</span>
             <span class="tab-link" onclick="app.switchTab('admin')">Admin</span>
         </div>
 
-        <div id="tab-general">
+        <div id="tab-general" class="tab-content">
             <label style="font-size:0.8rem; font-weight:bold">Měna</label>
             <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
             <label style="font-size:0.8rem; font-weight:bold; display:block; margin-top:10px">Kategorie a barvy grafu</label>
-            <div id="catEditor" style="max-height: 250px; overflow-y: auto; margin-top:5px"></div>
+            <div id="catEditor" style="margin-top:5px"></div>
             <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat kategorii</button>
         </div>
 
-        <div id="tab-admin" class="hidden">
-            <h3 style="margin-top:0">Přehled uživatelů</h3>
-            <div id="adminUserList" style="max-height: 300px; overflow-y: auto;">
+        <div id="tab-admin" class="tab-content hidden">
+            <h3 style="margin-top:0">Správa uživatelů</h3>
+            <div id="adminUserList">
                 <p>Načítám data...</p>
             </div>
         </div>
@@ -259,15 +266,36 @@
         async loadAdminData() {
             const container = document.getElementById('adminUserList');
             const { data: users } = await db.from('app_users').select('*');
-            const { data: allTxns } = await db.from('transactions').select('user_id, amount');
             
-            let html = '<table><tr><th>Uživatel</th><th>Zůstatek</th></tr>';
+            let html = '<table class="admin-table"><tr><th>Email</th><th>Akce</th></tr>';
             users.forEach(u => {
-                const bal = allTxns.filter(t => t.user_id === u.id).reduce((s, t) => s + t.amount, 0);
-                html += `<tr><td>${u.email || u.id.slice(0,8)}</td><td>${bal.toLocaleString()}</td></tr>`;
+                html += `
+                <tr>
+                    <td>${u.email || 'Neznámý'}</td>
+                    <td style="white-space:nowrap">
+                        <button class="btn-small" onclick="app.adminResetPass('${u.id}')">Heslo</button>
+                        <button class="btn-small" style="background:#e60050" onclick="app.adminDeleteUser('${u.id}')">Smazat</button>
+                    </td>
+                </tr>`;
             });
             html += '</table>';
             container.innerHTML = html;
+        },
+
+        async adminResetPass(userId) {
+            const newPass = prompt("Zadejte nové heslo pro uživatele:");
+            if (!newPass) return;
+            // Poznámka: Toto vyžaduje Supabase Edge Function pro admin akce
+            alert("Požadavek odeslán. (V produkci zde voláme Edge Function)");
+        },
+
+        async adminDeleteUser(userId) {
+            if (confirm("Opravdu smazat tohoto uživatele i všechna jeho data?")) {
+                // Smazání transakcí a profilu (pokud není zapnuto ON DELETE CASCADE v DB)
+                await db.from('transactions').delete().eq('user_id', userId);
+                await db.from('app_users').delete().eq('id', userId);
+                this.loadAdminData();
+            }
         },
 
         async handleAuth(authUser) {
@@ -361,11 +389,10 @@
             
             this.renderMonthChips();
             this.updateChart(filtered);
-            this.renderCategoryBreakdown(filtered); // Nový souhrn
+            this.renderCategoryBreakdown(filtered);
             this.calcDaily(total);
         },
 
-        // Nová funkce pro výpis kategorií
         renderCategoryBreakdown(list) {
             const data = {};
             list.filter(t => t.amount < 0).forEach(t => {
@@ -375,13 +402,15 @@
             const container = document.getElementById('categoryBreakdown');
             let html = '';
             
-            Object.keys(data).sort((a,b) => data[b] - data[a]).forEach(catName => {
-                const catObj = this.user.custom_categories.find(c => c.name === catName) || { color: "#7b8894" };
-                html += `
-                <div class="cat-row">
-                    <span class="cat-pill" style="background:${catObj.color}">${catName}</span>
-                    <span style="font-weight:bold">${data[catName].toLocaleString()} ${this.curr}</span>
-                </div>`;
+            // Řazení podle pořadí v nastavení (user.custom_categories)
+            this.user.custom_categories.forEach(catObj => {
+                if (data[catObj.name]) {
+                    html += `
+                    <div class="cat-row">
+                        <span class="cat-pill" style="background:${catObj.color}">${catObj.name}</span>
+                        <span style="font-weight:bold">${data[catObj.name].toLocaleString()} ${this.curr}</span>
+                    </div>`;
+                }
             });
             
             container.innerHTML = html || '<p style="text-align:center; opacity:0.5; font-size:0.8rem">Žádné výdaje</p>';
