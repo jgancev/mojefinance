@@ -314,15 +314,16 @@
 
         async loadAdminData() {
             const container = document.getElementById('adminUserList');
-            const { data: users } = await db.from('app_users').select('*');
+            const { data: users, error } = await db.from('app_users').select('*');
+            if (error) { container.innerHTML = `<p style="color:red">Chyba: ${error.message}</p>`; return; }
+            
             let html = '<table class="admin-table"><tr><th>Uživatel</th><th>Role</th><th>Akce</th></tr>';
-            if (users) {
-                users.forEach(u => {
-                    html += `<tr><td>${u.display_name || 'Uživatel'}</td><td>${u.role || 'user'}</td><td>
-                        <button class="btn-small" style="background:#e60050" onclick="app.adminDeleteUser('${u.id}')">Smazat</button>
-                    </td></tr>`;
-                });
-            }
+            users.forEach(u => {
+                const name = u.display_name || u.id.slice(0,8);
+                html += `<tr><td>${name}</td><td>${u.role || 'user'}</td><td>
+                    <button class="btn-small" style="background:#e60050" onclick="app.adminDeleteUser('${u.id}')">Smazat</button>
+                </td></tr>`;
+            });
             html += '</table>';
             container.innerHTML = html;
         },
@@ -337,10 +338,9 @@
 
         async handleAuth(authUser) {
             this.user = authUser;
-            let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+            const nick = authUser.email.split('@')[0];
+            let { data: prof, error: fetchError } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
             
-            const nick = authUser.email.split('@')[0]; // Bezpečná identifikace
-
             if (!prof) {
                 const newProf = { 
                     id: authUser.id, 
@@ -349,15 +349,15 @@
                     custom_categories: this.defCats,
                     role: 'user' 
                 };
-                await db.from('app_users').insert([newProf]);
+                const { error: insertError } = await db.from('app_users').insert([newProf]);
                 prof = newProf;
             } else if (!prof.display_name) {
-                // Pokud už profil existuje, ale nemá přezdívku, doplníme ji
                 await db.from('app_users').update({ display_name: nick }).eq('id', authUser.id);
+                prof.display_name = nick;
             }
 
             this.curr = prof.currency || 'Kč';
-            this.user.custom_categories = prof.custom_categories;
+            this.user.custom_categories = prof.custom_categories || this.defCats;
             this.userRole = prof.role || 'user';
             
             if (this.userRole === 'admin') {
