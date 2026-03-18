@@ -188,9 +188,8 @@
 
 <div id="settingsOverlay" class="overlay hidden">
     <div class="card settings-card">
-        <div class="tab-nav">
+        <div class="tab-nav" id="mainTabNav">
             <span class="tab-link active" onclick="app.switchTab('general')">Obecné</span>
-            <span id="adminTabLink" class="tab-link hidden" onclick="app.switchTab('admin')">Admin</span>
         </div>
 
         <div id="tab-general" class="tab-content">
@@ -242,7 +241,6 @@
 
         setupListeners() {
             const get = (id) => document.getElementById(id);
-            
             get('authToggleBtn').onclick = (e) => {
                 e.preventDefault();
                 const isLogin = get('authTitle').innerText === 'Přihlášení';
@@ -251,12 +249,10 @@
                 get('authToggleText').innerText = isLogin ? 'Již máte účet?' : 'Nemáte účet?';
                 get('authToggleBtn').innerText = isLogin ? 'Přihlásit se' : 'Zaregistrovat se';
             };
-
             get('loginBtn').onclick = () => {
                 const isLogin = get('authTitle').innerText === 'Přihlášení';
                 if (isLogin) this.login(); else this.register();
             };
-
             get('logoutBtn').onclick = () => this.logout();
             get('themeBtn').onclick = () => this.cycleTheme();
             get('userBtn').onclick = () => { get('settingsOverlay').classList.remove('hidden'); this.switchTab('general'); };
@@ -265,7 +261,6 @@
             get('saveIncBtn').onclick = () => this.saveTxn(true);
             get('addCatBtn').onclick = () => this.addCat();
             get('stCurr').onchange = (e) => this.updateCurr(e.target.value);
-            
             document.addEventListener('click', e => {
                 if (!e.target.closest('.menu-container')) {
                     document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
@@ -321,7 +316,6 @@
             }
         },
 
-        // --- TADY JE TA JEDNODUCHÁ OPRAVA ---
         async handleAuth(authUser) {
             this.user = authUser;
             let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
@@ -340,16 +334,21 @@
 
             this.curr = prof.currency || 'Kč';
             this.user.custom_categories = prof.custom_categories || this.defCats;
-            
             this.init();
 
-            // PŘÍMÁ KONTROLA: Pokud je email tvůj, nebo je role v DB admin, ukaž tab.
-            // ZMĚŇ EMAIL NÍŽE NA SVŮJ:
-            const adminEmail = "jgancev@seznam.CZ"; 
-
-            if (authUser.email === adminEmail || prof.role === 'admin') {
-                const adminTab = document.getElementById('adminTabLink');
-                if (adminTab) adminTab.classList.remove('hidden');
+            // --- DYNAMICKÉ VLOŽENÍ ADMIN TABU ---
+            const adminEmail = "TVŮJ@EMAIL.CZ"; // <--- ZDE ZADEJ SVŮJ EMAIL
+            
+            if (authUser.email === adminEmail || (prof && prof.role === 'admin')) {
+                const nav = document.getElementById('mainTabNav');
+                if (nav && !document.getElementById('adminTabLink')) {
+                    const adminSpan = document.createElement('span');
+                    adminSpan.id = 'adminTabLink';
+                    adminSpan.className = 'tab-link';
+                    adminSpan.innerText = 'Admin';
+                    adminSpan.onclick = () => app.switchTab('admin');
+                    nav.appendChild(adminSpan);
+                }
             }
         },
 
@@ -375,11 +374,9 @@
             const now = new Date().toISOString().slice(0,10);
             const total = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
             document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
-            
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
             const listEl = document.getElementById('txnList');
             listEl.innerHTML = '';
-
             filtered.forEach(t => {
                 const isEditing = this.editingId === t.id;
                 const div = document.createElement('div');
