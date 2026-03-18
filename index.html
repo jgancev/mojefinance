@@ -89,7 +89,6 @@
         }
         .chip.selected { background: var(--primary); color: white; }
 
-        /* Admin Tab styly */
         .tab-nav { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); }
         .tab-link { padding: 10px; cursor: pointer; opacity: 0.6; }
         .tab-link.active { opacity: 1; border-bottom: 2px solid var(--primary); font-weight: bold; }
@@ -172,8 +171,8 @@
         <div id="tab-general">
             <label style="font-size:0.8rem; font-weight:bold">Měna</label>
             <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
-            <label style="font-size:0.8rem; font-weight:bold; display:block; margin-top:10px">Kategorie</label>
-            <div id="catEditor"></div>
+            <label style="font-size:0.8rem; font-weight:bold; display:block; margin-top:10px">Kategorie a barvy grafu</label>
+            <div id="catEditor" style="max-height: 250px; overflow-y: auto; margin-top:5px"></div>
             <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat kategorii</button>
         </div>
 
@@ -199,7 +198,14 @@
         user: null, txns: [], curMonth: 'all', 
         curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
         editingId: null,
-        defCats: ["Jídlo 🍕", "Běžné 🏠", "Nákupy 🛍️", "Ostatní ⚙️"],
+        // Paleta 10 decentních barev (ne pastelové, ne ostré)
+        palette: ["#4a90e2", "#50b83c", "#f5a623", "#d0021b", "#9013fe", "#41b3b3", "#7b8894", "#e94e77", "#a3be8c", "#5e81ac"],
+        defCats: [
+            { name: "Jídlo 🍕", color: "#4a90e2" },
+            { name: "Běžné 🏠", color: "#50b83c" },
+            { name: "Nákupy 🛍️", color: "#f5a623" },
+            { name: "Ostatní ⚙️", color: "#7b8894" }
+        ],
 
         async start() {
             this.applyTheme();
@@ -254,7 +260,11 @@
             const { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
             if (prof) {
                 this.curr = prof.currency || 'Kč';
-                this.user.custom_categories = prof.custom_categories || this.defCats;
+                // Převod starých stringových kategorií na objekty s barvou, pokud je potřeba
+                const rawCats = prof.custom_categories || this.defCats;
+                this.user.custom_categories = rawCats.map((c, i) => 
+                    typeof c === 'string' ? { name: c, color: this.palette[i % this.palette.length] } : c
+                );
             }
             this.init();
         },
@@ -307,7 +317,7 @@
                         <input type="date" id="edit-date-${t.id}" value="${t.date}">
                         <input type="text" id="edit-desc-${t.id}" value="${t.description}">
                         <input type="number" id="edit-amt-${t.id}" value="${Math.abs(t.amount)}">
-                        ${t.amount < 0 ? `<select id="edit-cat-${t.id}">${this.user.custom_categories.map(c => `<option ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>` : ''}
+                        ${t.amount < 0 ? `<select id="edit-cat-${t.id}">${this.user.custom_categories.map(c => `<option ${c.name===t.category?'selected':''}>${c.name}</option>`).join('')}</select>` : ''}
                         <div style="display:flex; gap:10px;">
                             <button onclick="app.saveInline('${t.id}', ${t.amount > 0})">Uložit</button>
                             <button onclick="app.setEdit(null)" style="background:var(--border); color:var(--text)">Zrušit</button>
@@ -395,20 +405,54 @@
 
         renderCats() {
             const cats = this.user.custom_categories || this.defCats;
-            document.getElementById('expCat').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+            document.getElementById('expCat').innerHTML = cats.map(c => `<option>${c.name}</option>`).join('');
             document.getElementById('catEditor').innerHTML = cats.map((c, i) => `
-                <div style="display:flex; gap:5px; margin-bottom:5px"><input value="${c}" onchange="app.editCat(${i}, this.value)"></div>`).join('');
+                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
+                    <input value="${c.name}" onchange="app.editCat(${i}, 'name', this.value)" style="margin:0; flex-grow:1;">
+                    <select onchange="app.editCat(${i}, 'color', this.value)" style="margin:0; width:60px; padding:8px; background:${c.color}">
+                        ${this.palette.map(p => `<option value="${p}" ${p===c.color?'selected':''} style="background:${p}"></option>`).join('')}
+                    </select>
+                </div>`).join('');
         },
-        async editCat(i, v) { this.user.custom_categories[i] = v; await this.savePref(); },
-        async addCat() { this.user.custom_categories.push("Nová"); await this.savePref(); this.renderCats(); },
+        async editCat(i, key, v) { 
+            this.user.custom_categories[i][key] = v; 
+            await this.savePref(); 
+            if (key === 'color') this.renderCats(); // Refresh barev v selectu
+            this.updateUI(); 
+        },
+        async addCat() { 
+            const newColor = this.palette[this.user.custom_categories.length % this.palette.length];
+            this.user.custom_categories.push({ name: "Nová", color: newColor }); 
+            await this.savePref(); 
+            this.renderCats(); 
+        },
         async updateCurr(v) { this.curr = v; await this.savePref(); this.updateUI(); },
         async savePref() { await db.from('app_users').update({ custom_categories: this.user.custom_categories, currency: this.curr }).eq('id', this.user.id); },
 
         updateChart(list) {
             const ctx = document.getElementById('myChart');
-            const data = {}; list.filter(t => t.amount < 0).forEach(t => data[t.category] = (data[t.category] || 0) + Math.abs(t.amount));
+            const data = {}; 
+            list.filter(t => t.amount < 0).forEach(t => data[t.category] = (data[t.category] || 0) + Math.abs(t.amount));
+            
+            // Mapování barev z nastavení na kategorie v grafu
+            const bgColors = Object.keys(data).map(catName => {
+                const found = this.user.custom_categories.find(c => c.name === catName);
+                return found ? found.color : "#cbd5e1";
+            });
+
             if (chart) chart.destroy();
-            chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#0066e1', '#22ad5c', '#9d28b0', '#e60050', '#008183'] }] }, options: { plugins: { legend: { display: false } } } });
+            chart = new Chart(ctx, { 
+                type: 'doughnut', 
+                data: { 
+                    labels: Object.keys(data), 
+                    datasets: [{ 
+                        data: Object.values(data), 
+                        backgroundColor: bgColors,
+                        borderWidth: 0
+                    }] 
+                }, 
+                options: { plugins: { legend: { display: false } } } 
+            });
         },
 
         cycleTheme() {
