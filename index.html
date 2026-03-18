@@ -190,7 +190,7 @@
     <div class="card settings-card">
         <div class="tab-nav">
             <span class="tab-link active" onclick="app.switchTab('general')">Obecné</span>
-            <span class="tab-link id-admin-tab hidden" onclick="app.switchTab('admin')">Admin</span>
+            <span id="adminTabLink" class="tab-link hidden" onclick="app.switchTab('admin')">Admin</span>
         </div>
 
         <div id="tab-general" class="tab-content">
@@ -224,8 +224,6 @@
         curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
         editingId: null,
         palette: ["#4a90e2", "#50b83c", "#f5a623", "#d0021b", "#9013fe", "#41b3b3", "#7b8894", "#e94e77", "#a3be8c", "#5e81ac"],
-        
-        // TVOJE KATEGORIE ZKOMBINOVANÉ DO SUPABASE LOGIKY
         defCats: [
             { name: "Jídlo 🍕", color: "#4a90e2" },
             { name: "Běžné 🏠", color: "#50b83c" },
@@ -303,7 +301,7 @@
         async loadAdminData() {
             const container = document.getElementById('adminUserList');
             const { data: users } = await db.from('app_users').select('*');
-            let html = '<table class="admin-table"><tr><th>Email</th><th>Akce</th></tr>';
+            let html = '<table class="admin-table"><tr><th>Uživatel</th><th>Akce</th></tr>';
             if (users) {
                 users.forEach(u => {
                     html += `<tr><td>${u.display_name || u.id.slice(0,8)}</td><td>
@@ -328,7 +326,6 @@
             let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
             
             if (!prof) {
-                // Pokud uživatel v DB ještě není, vytvoříme ho s TVÝMI kategoriemi
                 const newProf = { 
                     id: authUser.id, 
                     display_name: authUser.email.split('@')[0], 
@@ -342,7 +339,12 @@
 
             this.curr = prof.currency || 'Kč';
             this.user.custom_categories = prof.custom_categories || this.defCats;
-            if (prof.role === 'admin') document.querySelector('.id-admin-tab')?.classList.remove('hidden');
+            
+            // ZOBRAZENÍ ADMIN TABU PODLE ROLE
+            if (prof.role === 'admin') {
+                const adminTab = document.getElementById('adminTabLink');
+                if (adminTab) adminTab.classList.remove('hidden');
+            }
             
             this.init();
         },
