@@ -11,7 +11,6 @@
             --primary: #0081ff; --income: #10b981; --expense: #ef4444;
         }
         .dark { --bg: #101115; --card: #1c1d23; --text: #f8fafc; --border: #2d3139; }
-        .amoled { --bg: #000000; --card: #000000; --text: #ffffff; --border: #222; }
 
         * { box-sizing: border-box; }
         body {
@@ -20,19 +19,18 @@
             margin: 0; transition: background 0.3s;
         }
 
-        /* HLAVIČKA - FIXNÍ POZICE */
         .header-main {
             max-width: 1500px; margin: 0 auto;
             display: flex; justify-content: space-between; align-items: center;
             padding: 15px 20px;
         }
 
-        /* Neviditelné/přirozené tlačítko pro Email */
+        /* Email jako tlačítko - jen na šířku textu */
         #userBtn {
             background: none; border: none; color: inherit;
-            font-weight: 800; cursor: pointer; padding: 10px 15px;
-            margin-left: -15px; border-radius: 8px; text-align: left;
-            font-size: 1rem; transition: background 0.2s;
+            font-weight: 800; cursor: pointer; padding: 5px 10px;
+            margin-left: -10px; border-radius: 6px; text-align: left;
+            font-size: 1rem; width: auto; display: inline-block;
         }
         #userBtn:hover { background: rgba(128,128,128,0.1); }
 
@@ -59,15 +57,21 @@
         button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
 
+        /* OPRAVA HISTORIE - Flex řádek */
+        .txn-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+        }
+
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 1000;
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* TABY V NASTAVENÍ */
-        .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .tab-btn { background: none; color: var(--text); padding: 8px; border-radius: 0; font-size: 0.9rem; opacity: 0.6; }
+        /* TABY */
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .tab-btn { background: none; color: var(--text); padding: 10px; border-radius: 0; font-size: 0.9rem; opacity: 0.5; width: auto; margin: 0; }
         .tab-btn.active { opacity: 1; border-bottom: 2px solid var(--primary); }
 
         .chip {
@@ -91,7 +95,7 @@
 <div id="mainSection" class="hidden">
     <div class="header-main">
         <button id="userBtn"></button>
-        <button id="themeBtn" style="width:auto">🌓 Mode</button>
+        <button id="themeBtn" style="width:auto; padding: 8px 15px;">🌓 Světlý</button>
     </div>
     
     <div class="dashboard-grid">
@@ -112,7 +116,7 @@
                 <h3 style="color:var(--income)">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis">
-                <input type="number" id="incAmt" placeholder="Částka">
+                <input type="number" id="incAmt">
                 <button id="saveIncBtn" style="background:var(--income)">Uložit</button>
             </div>
         </div>
@@ -137,7 +141,7 @@
 </div>
 
 <div id="settingsOverlay" class="overlay hidden">
-    <div class="card" style="width:95%; max-width:500px">
+    <div class="card" style="width:95%; max-width:400px">
         <div id="adminNav" class="tab-nav hidden">
             <button class="tab-btn active" onclick="app.switchTab('personal')">Osobní</button>
             <button class="tab-btn" onclick="app.switchTab('admin')">Admin</button>
@@ -145,19 +149,17 @@
         
         <div id="personalTab">
             <h2>Nastavení</h2>
-            <label>Měna:</label>
             <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
-            <h4>Kategorie</h4>
             <div id="catEditor"></div>
             <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat</button>
         </div>
 
         <div id="adminTab" class="hidden">
             <h2>Admin Panel</h2>
-            <p style="opacity:0.5">Zatím zde nic není...</p>
+            <p style="opacity:0.5">Zde zatím nic není.</p>
         </div>
 
-        <button id="closeSettings" style="margin-top:20px; background:var(--text); color:var(--bg)">Zavřít</button>
+        <button id="closeSettings" style="margin-top:20px;">Zavřít</button>
     </div>
 </div>
 
@@ -210,7 +212,6 @@
             document.getElementById('mainSection').classList.remove('hidden');
             document.getElementById('userBtn').innerText = this.user.email;
             if (this.isAdmin) document.getElementById('adminNav').classList.remove('hidden');
-            
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('expDate').value = today;
             document.getElementById('incDate').value = today;
@@ -302,14 +303,13 @@
         },
 
         cycleTheme() {
-            this.theme = this.theme === 'light' ? 'dark' : (this.theme === 'dark' ? 'amoled' : 'light');
+            this.theme = this.theme === 'light' ? 'dark' : 'light';
             localStorage.setItem('theme', this.theme);
             this.applyTheme();
         },
         applyTheme() {
-            document.body.classList.remove('dark', 'amoled');
-            if (this.theme !== 'light') document.body.classList.add(this.theme);
-            document.getElementById('themeBtn').innerText = `🌓 Mode: ${this.theme}`;
+            document.body.classList.toggle('dark', this.theme === 'dark');
+            document.getElementById('themeBtn').innerText = this.theme === 'dark' ? '🌓 Světlý' : '🌓 Tmavý';
         }
     };
 
