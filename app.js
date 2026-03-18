@@ -56,9 +56,10 @@ const app = {
     },
 
     async login() {
-        const email = document.getElementById('loginUser').value;
-        const pass = document.getElementById('loginPass').value;
-        const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+        const { data, error } = await db.auth.signInWithPassword({ 
+            email: document.getElementById('loginUser').value, 
+            password: document.getElementById('loginPass').value 
+        });
         if (error) alert(error.message); else this.handleAuth(data.user);
     },
 
@@ -72,9 +73,7 @@ const app = {
 
     updateUI() {
         const now = new Date().toISOString().slice(0,10);
-        const total = this.txns.reduce((a, b) => a + b.amount, 0);
         const currentBal = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
-        
         document.getElementById('balToday').innerText = `${currentBal.toLocaleString()} ${this.curr}`;
         
         const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
