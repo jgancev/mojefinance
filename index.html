@@ -57,7 +57,6 @@
             flex-grow: 1;
             overflow: hidden;
             width: 100%;
-            /* Fixace výšky tak, aby spodek lícoval s oknem */
             height: calc(100vh - 80px); 
         }
 
@@ -355,8 +354,13 @@
                 prof = newProf;
             }
             this.curr = prof.currency || 'Kč';
-            // Pojištění načtení kategorií z databáze
-            this.user.custom_categories = (prof.custom_categories && prof.custom_categories.length > 0) ? prof.custom_categories : JSON.parse(JSON.stringify(this.defCats));
+            // Robustní načtení: pokud je sloupec v DB null nebo prázdné pole, použij defCats
+            if (prof.custom_categories && Array.isArray(prof.custom_categories) && prof.custom_categories.length > 0) {
+                this.user.custom_categories = prof.custom_categories;
+            } else {
+                this.user.custom_categories = JSON.parse(JSON.stringify(this.defCats));
+                this.savePref(); 
+            }
             this.init();
         },
 
@@ -497,12 +501,14 @@
             this.updateUI(); 
         },
         async savePref() { 
-            // Klíčová oprava: Update v Supabase a následná okamžitá vizuální aktualizace
-            await db.from('app_users').update({ 
+            const { error } = await db.from('app_users').update({ 
                 custom_categories: this.user.custom_categories, 
                 currency: this.curr 
             }).eq('id', this.user.id);
-            // Vynutíme překreslení selectu s novými názvy kategorií
+            
+            if (error) console.error("Chyba DB:", error.message);
+            else console.log("Kategorie uloženy.");
+            
             this.renderCats();
         },
 
