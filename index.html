@@ -18,11 +18,10 @@
 
         * { box-sizing: border-box; }
         
-        /* FIXACE CELÉ STRÁNKY */
         html, body {
             height: 100vh;
             margin: 0;
-            overflow: hidden; /* Zakáže scroll celého webu */
+            overflow: hidden;
         }
 
         body {
@@ -34,7 +33,6 @@
             flex-direction: column;
         }
 
-        /* FIXNÍ HLAVIČKA */
         .header-main {
             width: 100%;
             max-width: 1100px; margin: 0 auto;
@@ -49,7 +47,6 @@
             border-radius: 6px; font-size: 1rem; width: auto;
         }
 
-        /* GRID ROZLOŽENÍ */
         .dashboard-grid {
             display: grid; 
             grid-template-columns: 280px 1fr 280px;
@@ -58,32 +55,39 @@
             max-width: 1100px; 
             margin: 0 auto;
             flex-grow: 1;
-            overflow: hidden; /* Grid samotný ne-scrolluje */
+            overflow: hidden;
             width: 100%;
-            height: calc(100vh - 75px); /* Výška okna minus hlavička */
+            height: calc(100vh - 75px);
         }
 
-        /* SLOUPEČKY - ZAKÁZÁNÍ SCROLLU */
-        #leftCol, #rightCol {
+        /* ÚPRAVA LEVÉHO SLOUPCE - KOMPAKTNĚJŠÍ */
+        #leftCol {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #leftCol .card { padding: 12px 15px; margin-bottom: 10px; }
+        #leftCol h3 { margin-bottom: 5px; font-size: 1rem; }
+        #leftCol input, #leftCol select, #leftCol button { margin: 4px 0; padding: 10px; }
+
+        #rightCol {
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
-        /* SCROLLOVACÍ PROSTŘEDEK - JEDINÉ MÍSTO KDE FUNGUJE SCROLL */
         #midCol {
             overflow-y: auto; 
             padding-right: 10px;
-            scrollbar-width: thin; /* Pro Firefox */
+            scrollbar-width: thin;
             scrollbar-color: var(--border) transparent;
         }
         
-        /* Webkit scrollbar (Chrome, Safari, Edge) */
         #midCol::-webkit-scrollbar { width: 6px; }
         #midCol::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
         @media (max-width: 1100px) {
-            html, body { overflow: auto; height: auto; } /* Na mobilu vrátíme klasický scroll */
+            html, body { overflow: auto; height: auto; }
             .dashboard-grid { grid-template-columns: 1fr; overflow: visible; height: auto; }
             #midCol { overflow: visible; }
         }
@@ -184,7 +188,7 @@
                 <p style="text-align:center; opacity:0.6; margin:0; font-size:0.9rem">Zůstatek</p>
             </div>
             <div class="card expense-card">
-                <h3 style="color:var(--expense); margin-top:0; font-size:1.1rem">Výdaj</h3>
+                <h3 style="color:var(--expense); margin-top:0;">Výdaj</h3>
                 <input type="date" id="expDate">
                 <input type="text" id="expDesc" placeholder="Popis">
                 <input type="number" id="expAmt" placeholder="Částka">
@@ -192,7 +196,7 @@
                 <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
             </div>
             <div class="card income-card">
-                <h3 style="color:var(--income); margin-top:0; font-size:1.1rem">Příjem</h3>
+                <h3 style="color:var(--income); margin-top:0;">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis příjmu">
                 <input type="number" id="incAmt" placeholder="Částka">
@@ -346,7 +350,7 @@
 
         async handleAuth(authUser) {
             this.user = authUser;
-            // FIX: PŘIDÁN AWAIT PRO NAČTENÍ DAT
+            // FIX: PŘIDÁN AWAIT PRO NAČTENÍ DAT ZE SUPABASE PŘED STARTEUM UI
             let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
             if (!prof) {
                 const newProf = { 
@@ -360,6 +364,7 @@
                 prof = newProf;
             }
             this.curr = prof.currency || 'Kč';
+            // FIX: ZAJIŠTĚNÍ ŽE SE KATEGORIE PŘIŘADÍ ZE SUPABASE
             this.user.custom_categories = (prof.custom_categories && prof.custom_categories.length > 0) ? prof.custom_categories : this.defCats;
             this.init();
         },
