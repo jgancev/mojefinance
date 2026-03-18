@@ -3,12 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Finance App</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0;
+            --primary: #0081ff; --income: #10b981; --expense: #ef4444;
+        }
+        .dark {
+            --bg: #101115; --card: #1c1d23; --text: #f8fafc; --border: #2d3139;
+        }
+        .amoled {
+            --bg: #000000; --card: #000000; --text: #ffffff; --border: #222;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background: var(--bg); color: var(--text);
+            margin: 0; transition: background 0.3s;
+        }
+
+        .header-main {
+            max-width: 1500px; margin: 0 auto;
+            display: flex; justify-content: space-between;
+            align-items: center; padding: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid; grid-template-columns: 320px 1fr 320px;
+            gap: 20px; padding: 20px; max-width: 1500px; margin: 0 auto;
+        }
+
+        @media (max-width: 1100px) {
+            .dashboard-grid { grid-template-columns: 1fr; padding: 10px; }
+            .header-main { flex-direction: column; gap: 10px; }
+        }
+
+        .card {
+            background: var(--card); border: 1px solid var(--border);
+            padding: 20px; border-radius: 12px; margin-bottom: 15px;
+        }
+
+        input, select, button {
+            width: 100%; padding: 12px; margin: 8px 0;
+            border-radius: 8px; border: 1px solid var(--border);
+            background: var(--card); color: var(--text); font-size: 1rem;
+        }
+
+        button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
+        .hidden { display: none !important; }
+
+        .txn-item {
+            display: flex; justify-content: space-between;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+        }
+
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .chip {
+            display: inline-block; padding: 6px 12px; background: var(--border);
+            border-radius: 20px; font-size: 0.8rem; cursor: pointer; margin-right: 5px;
+        }
+        .chip.selected { background: var(--primary); color: white; }
+    </style>
 </head>
-<body class="dark"> <div id="authSection" class="hidden">
-    <div class="card" style="max-width: 380px; margin: 100px auto; padding: 20px;">
+<body class="dark">
+
+<div id="authSection" class="hidden">
+    <div class="card" style="max-width: 400px; margin: 80px auto;">
         <h2>Přihlášení</h2>
         <input type="email" id="loginUser" placeholder="Email">
         <input type="password" id="loginPass" placeholder="Heslo">
@@ -32,19 +99,19 @@
                 <p style="text-align:center; opacity:0.7; margin:0">Zůstatek</p>
             </div>
             <div class="card">
-                <h3 style="color:#ef4444">Výdaj</h3>
+                <h3 style="color:var(--expense)">Výdaj</h3>
                 <input type="date" id="expDate">
                 <input type="text" id="expDesc" placeholder="Popis">
                 <input type="number" id="expAmt" placeholder="Částka">
                 <select id="expCat"></select>
-                <button id="saveExpBtn" style="background:#ef4444">Uložit výdaj</button>
+                <button id="saveExpBtn" style="background:var(--expense)">Uložit výdaj</button>
             </div>
             <div class="card">
-                <h3 style="color:#10b981">Příjem</h3>
+                <h3 style="color:var(--income)">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis">
                 <input type="number" id="incAmt" placeholder="Částka">
-                <button id="saveIncBtn" style="background:#10b981">Uložit příjem</button>
+                <button id="saveIncBtn" style="background:var(--income)">Uložit příjem</button>
             </div>
         </div>
 
@@ -62,7 +129,7 @@
                 <div id="dailyAvg" style="font-size:2rem; font-weight:800; text-align:center">0</div>
             </div>
             <div class="card"><canvas id="myChart"></canvas></div>
-            <button id="logoutBtn" style="background:#2d3139; color:#f8fafc">Odhlásit se</button>
+            <button id="logoutBtn" style="background:var(--border); color:var(--text)">Odhlásit se</button>
         </div>
     </div>
 </div>
@@ -72,11 +139,156 @@
         <h2>Nastavení</h2>
         <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
         <div id="catEditor"></div>
-        <button id="addCatBtn">+ Přidat kategorii</button>
-        <button id="closeSettings" style="margin-top:20px; background:#1e293b; color:white">Zavřít</button>
+        <button id="addCatBtn">+ Přidat</button>
+        <button id="closeSettings" style="margin-top:10px">Zavřít</button>
     </div>
 </div>
 
-<script type="module" src="app.js"></script>
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { config } from './config.js';
+
+    const db = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+    let chart = null;
+
+    const app = {
+        user: null, txns: [], curMonth: 'all',
+        curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
+        defCats: ["Jídlo 🍕", "Běžné 🏠", "Nákupy 🛍️", "Ostatní ⚙️"],
+
+        async start() {
+            this.applyTheme();
+            this.setupListeners();
+            const { data: { session } } = await db.auth.getSession();
+            if (session) await this.handleAuth(session.user);
+            else document.getElementById('authSection').classList.remove('hidden');
+        },
+
+        setupListeners() {
+            const get = (id) => document.getElementById(id);
+            get('loginBtn').onclick = () => this.login();
+            get('logoutBtn').onclick = () => this.logout();
+            get('themeBtn').onclick = () => this.cycleTheme();
+            get('openSettings').onclick = () => get('settingsOverlay').classList.remove('hidden');
+            get('closeSettings').onclick = () => get('settingsOverlay').classList.add('hidden');
+            get('saveExpBtn').onclick = () => this.saveTxn(false);
+            get('saveIncBtn').onclick = () => this.saveTxn(true);
+            get('addCatBtn').onclick = () => this.addCat();
+            get('stCurr').onchange = (e) => this.updateCurr(e.target.value);
+        },
+
+        async handleAuth(authUser) {
+            this.user = authUser;
+            const { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+            if (prof) {
+                this.curr = prof.currency || 'Kč';
+                this.user.custom_categories = prof.custom_categories || this.defCats;
+            } else {
+                this.user.custom_categories = this.defCats;
+            }
+            this.init();
+        },
+
+        init() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('mainSection').classList.remove('hidden');
+            document.getElementById('userLabel').innerText = this.user.email;
+            const today = new Date().toISOString().slice(0,10);
+            document.getElementById('expDate').value = today;
+            document.getElementById('incDate').value = today;
+            this.renderCats();
+            this.loadTxns();
+        },
+
+        async login() {
+            const email = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+            const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+            if (error) alert(error.message); else this.handleAuth(data.user);
+        },
+
+        async logout() { await db.auth.signOut(); location.reload(); },
+
+        async loadTxns() {
+            const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: false});
+            this.txns = data || [];
+            this.updateUI();
+        },
+
+        updateUI() {
+            const now = new Date().toISOString().slice(0,10);
+            const total = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
+            document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
+            
+            const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
+            document.getElementById('txnList').innerHTML = filtered.map(t => `
+                <div class="txn-item">
+                    <span><b>${t.description}</b><br><small>${t.date}</small></span>
+                    <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount.toLocaleString()} ${this.curr}</span>
+                </div>`).join('');
+
+            this.renderMonthChips();
+            this.updateChart(filtered);
+            this.calcDaily(total);
+        },
+
+        calcDaily(bal) {
+            const lastDay = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+            const days = Math.max(1, lastDay - new Date().getDate());
+            document.getElementById('dailyAvg').innerText = `${Math.round(bal / days).toLocaleString()} ${this.curr}`;
+        },
+
+        renderMonthChips() {
+            const months = ['all', ...new Set(this.txns.map(t => t.date.slice(0,7)).sort().reverse())];
+            document.getElementById('monthChips').innerHTML = months.map(m => `
+                <span class="chip ${this.curMonth===m?'selected':''}" onclick="app.setMonth('${m}')">${m}</span>`).join('');
+        },
+        setMonth(m) { this.curMonth = m; this.updateUI(); },
+
+        async saveTxn(isInc) {
+            const pre = isInc ? 'inc' : 'exp';
+            const amt = parseFloat(document.getElementById(pre+'Amt').value);
+            if (isNaN(amt)) return;
+            await db.from('transactions').insert([{
+                user_id: this.user.id, amount: isInc?amt:-amt, description: document.getElementById(pre+'Desc').value,
+                category: isInc?'Příjem':document.getElementById('expCat').value,
+                date: document.getElementById(pre+'Date').value
+            }]);
+            this.loadTxns();
+        },
+
+        renderCats() {
+            const cats = this.user.custom_categories || this.defCats;
+            document.getElementById('expCat').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+            document.getElementById('catEditor').innerHTML = cats.map((c, i) => `
+                <div style="display:flex; gap:5px; margin-bottom:5px"><input value="${c}" onchange="app.editCat(${i}, this.value)"></div>`).join('');
+        },
+        async editCat(i, v) { this.user.custom_categories[i] = v; await this.savePref(); },
+        async addCat() { this.user.custom_categories.push("Nová"); await this.savePref(); this.renderCats(); },
+        async updateCurr(v) { this.curr = v; await this.savePref(); this.updateUI(); },
+        async savePref() { await db.from('app_users').update({ custom_categories: this.user.custom_categories, currency: this.curr }).eq('id', this.user.id); },
+
+        updateChart(list) {
+            const ctx = document.getElementById('myChart');
+            const data = {}; list.filter(t => t.amount < 0).forEach(t => data[t.category] = (data[t.category] || 0) + Math.abs(t.amount));
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#0081ff', '#10b981', '#f59e0b', '#ef4444'] }] }, options: { plugins: { legend: { display: false } } } });
+        },
+
+        cycleTheme() {
+            this.theme = this.theme === 'light' ? 'dark' : (this.theme === 'dark' ? 'amoled' : 'light');
+            localStorage.setItem('theme', this.theme);
+            this.applyTheme();
+        },
+        applyTheme() {
+            document.body.classList.remove('dark', 'amoled');
+            if (this.theme !== 'light') document.body.classList.add(this.theme);
+            document.getElementById('themeBtn').innerText = `🌓 Mode: ${this.theme}`;
+        }
+    };
+
+    window.app = app;
+    app.start();
+</script>
 </body>
 </html>
