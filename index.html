@@ -17,17 +17,30 @@
         }
 
         * { box-sizing: border-box; }
+        
+        /* FIXACE CELÉ STRÁNKY */
+        html, body {
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Zakáže scroll celého webu */
+        }
+
         body {
             font-family: -apple-system, sans-serif;
             background: var(--bg); color: var(--text);
-            margin: 0; transition: background 0.3s;
+            transition: background 0.3s;
             background-image: radial-gradient(circle at top right, rgba(0,102,225,0.05), transparent 400px);
+            display: flex;
+            flex-direction: column;
         }
 
+        /* FIXNÍ HLAVIČKA */
         .header-main {
+            width: 100%;
             max-width: 1100px; margin: 0 auto;
             display: flex; justify-content: space-between; align-items: center;
             padding: 15px 20px;
+            flex-shrink: 0;
         }
 
         #userBtn {
@@ -36,13 +49,41 @@
             border-radius: 6px; font-size: 1rem; width: auto;
         }
 
+        /* GRID ROZLOŽENÍ */
         .dashboard-grid {
-            display: grid; grid-template-columns: 280px 1fr 280px;
-            gap: 20px; padding: 20px; max-width: 1100px; margin: 0 auto;
+            display: grid; 
+            grid-template-columns: 280px 1fr 280px;
+            gap: 20px; 
+            padding: 0 20px 20px 20px; 
+            max-width: 1100px; 
+            margin: 0 auto;
+            flex-grow: 1;
+            overflow: hidden; /* Grid samotný ne-scrolluje */
+            width: 100%;
         }
 
+        /* SLOUPEČKY */
+        #leftCol, #rightCol {
+            overflow-y: auto; /* Kdyby byly karty moc vysoké na malý monitor */
+            padding-right: 5px;
+        }
+
+        /* SCROLLOVACÍ PROSTŘEDEK */
+        #midCol {
+            overflow-y: auto; /* Jen historie se scrolluje */
+            padding-right: 10px;
+            scrollbar-width: thin; /* Pro Firefox */
+            scrollbar-color: var(--border) transparent;
+        }
+        
+        /* Webkit scrollbar (Chrome, Safari, Edge) */
+        #midCol::-webkit-scrollbar { width: 6px; }
+        #midCol::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
         @media (max-width: 1100px) {
-            .dashboard-grid { grid-template-columns: 1fr; padding: 10px; }
+            html, body { overflow: auto; height: auto; } /* Na mobilu vrátíme klasický scroll */
+            .dashboard-grid { grid-template-columns: 1fr; overflow: visible; }
+            #midCol { overflow: visible; }
         }
 
         .card {
