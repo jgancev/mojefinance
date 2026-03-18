@@ -10,12 +10,8 @@
             --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0;
             --primary: #0081ff; --income: #10b981; --expense: #ef4444;
         }
-        .dark {
-            --bg: #101115; --card: #1c1d23; --text: #f8fafc; --border: #2d3139;
-        }
-        .amoled {
-            --bg: #000000; --card: #000000; --text: #ffffff; --border: #222;
-        }
+        .dark { --bg: #101115; --card: #1c1d23; --text: #f8fafc; --border: #2d3139; }
+        .amoled { --bg: #000000; --card: #000000; --text: #ffffff; --border: #222; }
 
         * { box-sizing: border-box; }
         body {
@@ -24,11 +20,21 @@
             margin: 0; transition: background 0.3s;
         }
 
+        /* HLAVIČKA - FIXNÍ POZICE */
         .header-main {
             max-width: 1500px; margin: 0 auto;
-            display: flex; justify-content: space-between;
-            align-items: center; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px;
         }
+
+        /* Neviditelné/přirozené tlačítko pro Email */
+        #userBtn {
+            background: none; border: none; color: inherit;
+            font-weight: 800; cursor: pointer; padding: 10px 15px;
+            margin-left: -15px; border-radius: 8px; text-align: left;
+            font-size: 1rem; transition: background 0.2s;
+        }
+        #userBtn:hover { background: rgba(128,128,128,0.1); }
 
         .dashboard-grid {
             display: grid; grid-template-columns: 320px 1fr 320px;
@@ -37,7 +43,6 @@
 
         @media (max-width: 1100px) {
             .dashboard-grid { grid-template-columns: 1fr; padding: 10px; }
-            .header-main { flex-direction: column; gap: 10px; }
         }
 
         .card {
@@ -54,16 +59,16 @@
         button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
 
-        .txn-item {
-            display: flex; justify-content: space-between;
-            padding: 12px 0; border-bottom: 1px solid var(--border);
-        }
-
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 1000;
+            background: rgba(0,0,0,0.85); z-index: 1000;
             display: flex; align-items: center; justify-content: center;
         }
+
+        /* TABY V NASTAVENÍ */
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .tab-btn { background: none; color: var(--text); padding: 8px; border-radius: 0; font-size: 0.9rem; opacity: 0.6; }
+        .tab-btn.active { opacity: 1; border-bottom: 2px solid var(--primary); }
 
         .chip {
             display: inline-block; padding: 6px 12px; background: var(--border);
@@ -85,11 +90,8 @@
 
 <div id="mainSection" class="hidden">
     <div class="header-main">
-        <strong id="userLabel">Načítání...</strong>
-        <div>
-            <button id="themeBtn" style="width:auto">🌓 Mode</button>
-            <button id="openSettings" style="width:auto; margin-left:5px">⚙️</button>
-        </div>
+        <button id="userBtn"></button>
+        <button id="themeBtn" style="width:auto">🌓 Mode</button>
     </div>
     
     <div class="dashboard-grid">
@@ -104,14 +106,14 @@
                 <input type="text" id="expDesc" placeholder="Popis">
                 <input type="number" id="expAmt" placeholder="Částka">
                 <select id="expCat"></select>
-                <button id="saveExpBtn" style="background:var(--expense)">Uložit výdaj</button>
+                <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
             </div>
             <div class="card">
                 <h3 style="color:var(--income)">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis">
                 <input type="number" id="incAmt" placeholder="Částka">
-                <button id="saveIncBtn" style="background:var(--income)">Uložit příjem</button>
+                <button id="saveIncBtn" style="background:var(--income)">Uložit</button>
             </div>
         </div>
 
@@ -135,12 +137,27 @@
 </div>
 
 <div id="settingsOverlay" class="overlay hidden">
-    <div class="card" style="width:90%; max-width:400px">
-        <h2>Nastavení</h2>
-        <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
-        <div id="catEditor"></div>
-        <button id="addCatBtn">+ Přidat</button>
-        <button id="closeSettings" style="margin-top:10px">Zavřít</button>
+    <div class="card" style="width:95%; max-width:500px">
+        <div id="adminNav" class="tab-nav hidden">
+            <button class="tab-btn active" onclick="app.switchTab('personal')">Osobní</button>
+            <button class="tab-btn" onclick="app.switchTab('admin')">Admin</button>
+        </div>
+        
+        <div id="personalTab">
+            <h2>Nastavení</h2>
+            <label>Měna:</label>
+            <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
+            <h4>Kategorie</h4>
+            <div id="catEditor"></div>
+            <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat</button>
+        </div>
+
+        <div id="adminTab" class="hidden">
+            <h2>Admin Panel</h2>
+            <p style="opacity:0.5">Zatím zde nic není...</p>
+        </div>
+
+        <button id="closeSettings" style="margin-top:20px; background:var(--text); color:var(--bg)">Zavřít</button>
     </div>
 </div>
 
@@ -152,7 +169,7 @@
     let chart = null;
 
     const app = {
-        user: null, txns: [], curMonth: 'all',
+        user: null, txns: [], curMonth: 'all', isAdmin: false,
         curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
         defCats: ["Jídlo 🍕", "Běžné 🏠", "Nákupy 🛍️", "Ostatní ⚙️"],
 
@@ -169,7 +186,7 @@
             get('loginBtn').onclick = () => this.login();
             get('logoutBtn').onclick = () => this.logout();
             get('themeBtn').onclick = () => this.cycleTheme();
-            get('openSettings').onclick = () => get('settingsOverlay').classList.remove('hidden');
+            get('userBtn').onclick = () => get('settingsOverlay').classList.remove('hidden');
             get('closeSettings').onclick = () => get('settingsOverlay').classList.add('hidden');
             get('saveExpBtn').onclick = () => this.saveTxn(false);
             get('saveIncBtn').onclick = () => this.saveTxn(true);
@@ -183,8 +200,7 @@
             if (prof) {
                 this.curr = prof.currency || 'Kč';
                 this.user.custom_categories = prof.custom_categories || this.defCats;
-            } else {
-                this.user.custom_categories = this.defCats;
+                this.isAdmin = (prof.role === 'admin');
             }
             this.init();
         },
@@ -192,7 +208,9 @@
         init() {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
-            document.getElementById('userLabel').innerText = this.user.email;
+            document.getElementById('userBtn').innerText = this.user.email;
+            if (this.isAdmin) document.getElementById('adminNav').classList.remove('hidden');
+            
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('expDate').value = today;
             document.getElementById('incDate').value = today;
@@ -200,10 +218,20 @@
             this.loadTxns();
         },
 
+        switchTab(tab) {
+            const isPersonal = tab === 'personal';
+            document.getElementById('personalTab').classList.toggle('hidden', !isPersonal);
+            document.getElementById('adminTab').classList.toggle('hidden', isPersonal);
+            const btns = document.querySelectorAll('.tab-btn');
+            btns[0].classList.toggle('active', isPersonal);
+            btns[1].classList.toggle('active', !isPersonal);
+        },
+
         async login() {
-            const email = document.getElementById('loginUser').value;
-            const pass = document.getElementById('loginPass').value;
-            const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+            const { data, error } = await db.auth.signInWithPassword({ 
+                email: document.getElementById('loginUser').value, 
+                password: document.getElementById('loginPass').value 
+            });
             if (error) alert(error.message); else this.handleAuth(data.user);
         },
 
@@ -219,14 +247,12 @@
             const now = new Date().toISOString().slice(0,10);
             const total = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
             document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
-            
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
             document.getElementById('txnList').innerHTML = filtered.map(t => `
                 <div class="txn-item">
                     <span><b>${t.description}</b><br><small>${t.date}</small></span>
-                    <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount.toLocaleString()} ${this.curr}</span>
+                    <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount.toLocaleString()}</span>
                 </div>`).join('');
-
             this.renderMonthChips();
             this.updateChart(filtered);
             this.calcDaily(total);
