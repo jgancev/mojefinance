@@ -21,12 +21,11 @@
             font-family: -apple-system, sans-serif;
             background: var(--bg); color: var(--text);
             margin: 0; transition: background 0.3s;
-            /* Jemný nádech v pozadí */
             background-image: radial-gradient(circle at top right, rgba(0,102,225,0.05), transparent 400px);
         }
 
         .header-main {
-            max-width: 1500px; margin: 0 auto;
+            max-width: 1100px; margin: 0 auto;
             display: flex; justify-content: space-between; align-items: center;
             padding: 15px 20px;
         }
@@ -38,15 +37,14 @@
         }
 
         .dashboard-grid {
-            display: grid; grid-template-columns: 320px 1fr 320px;
-            gap: 20px; padding: 20px; max-width: 1500px; margin: 0 auto;
+            display: grid; grid-template-columns: 280px 1fr 280px;
+            gap: 20px; padding: 20px; max-width: 1100px; margin: 0 auto;
         }
 
         @media (max-width: 1100px) {
             .dashboard-grid { grid-template-columns: 1fr; padding: 10px; }
         }
 
-        /* Karty s George linkami */
         .card {
             background: var(--card); border: 1px solid var(--border);
             padding: 20px; border-radius: 12px; margin-bottom: 15px;
@@ -91,6 +89,13 @@
         }
         .chip.selected { background: var(--primary); color: white; }
 
+        /* Admin Tab styly */
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .tab-link { padding: 10px; cursor: pointer; opacity: 0.6; }
+        .tab-link.active { opacity: 1; border-bottom: 2px solid var(--primary); font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 1000;
@@ -112,17 +117,17 @@
 <div id="mainSection" class="hidden">
     <div class="header-main">
         <button id="userBtn"></button>
-        <button id="themeBtn" style="width:auto; padding: 8px 15px;">🌓 Přepnout režim</button>
+        <button id="themeBtn" style="width:auto; padding: 8px 15px;">Tmavý</button>
     </div>
     
     <div class="dashboard-grid">
         <div id="leftCol">
             <div class="card">
-                <div id="balToday" style="font-size:2.2rem; font-weight:800; text-align:center">0</div>
-                <p style="text-align:center; opacity:0.6; margin:0">Zůstatek</p>
+                <div id="balToday" style="font-size:2rem; font-weight:800; text-align:center">0</div>
+                <p style="text-align:center; opacity:0.6; margin:0; font-size:0.9rem">Zůstatek</p>
             </div>
             <div class="card expense-card">
-                <h3 style="color:var(--expense); margin-top:0">Výdaj</h3>
+                <h3 style="color:var(--expense); margin-top:0; font-size:1.1rem">Výdaj</h3>
                 <input type="date" id="expDate">
                 <input type="text" id="expDesc" placeholder="Popis">
                 <input type="number" id="expAmt" placeholder="Částka">
@@ -130,7 +135,7 @@
                 <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
             </div>
             <div class="card income-card">
-                <h3 style="color:var(--income); margin-top:0">Příjem</h3>
+                <h3 style="color:var(--income); margin-top:0; font-size:1.1rem">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis příjmu">
                 <input type="number" id="incAmt" placeholder="Částka">
@@ -140,7 +145,7 @@
 
         <div id="midCol">
             <div class="card">
-                <h3 style="margin-top:0">Historie</h3>
+                <h3 style="margin-top:0; font-size:1.1rem">Historie</h3>
                 <div id="monthChips" style="overflow-x:auto; white-space:nowrap; margin-bottom:15px"></div>
                 <div id="txnList"></div>
             </div>
@@ -148,21 +153,37 @@
 
         <div id="rightCol">
             <div class="card teal-card">
-                <p style="text-align:center; margin:0; opacity:0.6">Denní limit</p>
-                <div id="dailyAvg" style="font-size:2rem; font-weight:800; text-align:center">0</div>
+                <p style="text-align:center; margin:0; opacity:0.6; font-size:0.9rem">Denní limit</p>
+                <div id="dailyAvg" style="font-size:1.8rem; font-weight:800; text-align:center">0</div>
             </div>
             <div class="card purple-card"><canvas id="myChart"></canvas></div>
-            <button id="logoutBtn" style="background:var(--border); color:var(--text)">Odhlásit se</button>
+            <button id="logoutBtn" style="background:var(--border); color:var(--text); font-size:0.9rem">Odhlásit se</button>
         </div>
     </div>
 </div>
 
 <div id="settingsOverlay" class="overlay hidden">
-    <div class="card" style="width:95%; max-width:400px">
-        <h2>Nastavení</h2>
-        <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
-        <div id="catEditor"></div>
-        <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat kategorii</button>
+    <div class="card" style="width:95%; max-width:500px">
+        <div class="tab-nav">
+            <span class="tab-link active" onclick="app.switchTab('general')">Obecné</span>
+            <span class="tab-link" onclick="app.switchTab('admin')">Admin</span>
+        </div>
+
+        <div id="tab-general">
+            <label style="font-size:0.8rem; font-weight:bold">Měna</label>
+            <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
+            <label style="font-size:0.8rem; font-weight:bold; display:block; margin-top:10px">Kategorie</label>
+            <div id="catEditor"></div>
+            <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat kategorii</button>
+        </div>
+
+        <div id="tab-admin" class="hidden">
+            <h3 style="margin-top:0">Přehled uživatelů</h3>
+            <div id="adminUserList" style="max-height: 300px; overflow-y: auto;">
+                <p>Načítám data...</p>
+            </div>
+        </div>
+
         <button id="closeSettings" style="margin-top:20px;">Zavřít</button>
     </div>
 </div>
@@ -193,7 +214,7 @@
             get('loginBtn').onclick = () => this.login();
             get('logoutBtn').onclick = () => this.logout();
             get('themeBtn').onclick = () => this.cycleTheme();
-            get('userBtn').onclick = () => get('settingsOverlay').classList.remove('hidden');
+            get('userBtn').onclick = () => { get('settingsOverlay').classList.remove('hidden'); this.switchTab('general'); };
             get('closeSettings').onclick = () => get('settingsOverlay').classList.add('hidden');
             get('saveExpBtn').onclick = () => this.saveTxn(false);
             get('saveIncBtn').onclick = () => this.saveTxn(true);
@@ -205,6 +226,27 @@
                     document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
                 }
             });
+        },
+
+        switchTab(tab) {
+            document.querySelectorAll('.tab-link').forEach(l => l.classList.toggle('active', l.innerText.toLowerCase().includes(tab)));
+            document.getElementById('tab-general').classList.toggle('hidden', tab !== 'general');
+            document.getElementById('tab-admin').classList.toggle('hidden', tab !== 'admin');
+            if (tab === 'admin') this.loadAdminData();
+        },
+
+        async loadAdminData() {
+            const container = document.getElementById('adminUserList');
+            const { data: users } = await db.from('app_users').select('*');
+            const { data: allTxns } = await db.from('transactions').select('user_id, amount');
+            
+            let html = '<table><tr><th>Uživatel</th><th>Zůstatek</th></tr>';
+            users.forEach(u => {
+                const bal = allTxns.filter(t => t.user_id === u.id).reduce((s, t) => s + t.amount, 0);
+                html += `<tr><td>${u.email || u.id.slice(0,8)}</td><td>${bal.toLocaleString()}</td></tr>`;
+            });
+            html += '</table>';
+            container.innerHTML = html;
         },
 
         async handleAuth(authUser) {
@@ -376,6 +418,7 @@
         },
         applyTheme() {
             document.body.classList.toggle('dark', this.theme === 'dark');
+            document.getElementById('themeBtn').innerText = this.theme === 'dark' ? 'Světlý' : 'Tmavý';
         }
     };
 
