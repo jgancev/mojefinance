@@ -25,13 +25,14 @@
 * { box-sizing: border-box; }
 
 body {
-    font-family: -apple-system, sans-serif;
+    font-family: -apple-system, system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     margin: 0;
-    transition: 0.3s;
+    transition: background 0.3s, color 0.3s;
 }
 
+/* Hlavička - Email vlevo, Toggle vpravo */
 .header-main {
     max-width: 1500px;
     margin: 0 auto;
@@ -41,23 +42,7 @@ body {
     padding: 20px;
 }
 
-#headerActions { display: flex; gap: 8px; }
-
-/* MOBILNÍ ROZLOŽENÍ DLE TVÉHO POPISU */
-@media (max-width: 600px) {
-    .header-main {
-        display: grid;
-        grid-template-columns: 1fr auto; /* Levý sloupec pro info, pravý pro toggle */
-        grid-template-areas: 
-            "email toggle"
-            "btns toggle";
-        gap: 5px;
-    }
-    #userLabel { grid-area: email; text-align: left; font-size: 0.9rem; }
-    #headerActions { grid-area: btns; justify-content: flex-start; }
-    #themeBtn { grid-area: toggle; align-self: center; width: 100px !important; }
-}
-
+/* Dashboard Grid */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 320px 1fr 320px;
@@ -71,12 +56,14 @@ body {
     .dashboard-grid { grid-template-columns: 1fr; padding: 10px; }
 }
 
+/* Karty a Elementy */
 .card {
     background: var(--card);
     border: 1px solid var(--border);
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 15px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
 }
 
 input, select, button {
@@ -87,9 +74,14 @@ input, select, button {
     border: 1px solid var(--border);
     background: var(--card);
     color: var(--text);
+    font-size: 1rem;
+    outline: none;
 }
 
-select option { background: var(--card); color: var(--text); }
+select option {
+    background: var(--card);
+    color: var(--text);
+}
 
 button {
     background: var(--primary);
@@ -97,10 +89,14 @@ button {
     font-weight: bold;
     border: none;
     cursor: pointer;
+    transition: opacity 0.2s;
 }
+
+button:active { opacity: 0.8; }
 
 .hidden { display: none !important; }
 
+/* Seznam transakcí */
 .txn-item {
     display: flex;
     justify-content: space-between;
@@ -109,19 +105,48 @@ button {
     border-bottom: 1px solid var(--border);
 }
 
-.overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.85); z-index: 1000;
-    display: flex; align-items: center; justify-content: center;
+.txn-item:last-child { border-bottom: none; }
+
+/* Spodní akce v pravém sloupci */
+.bottom-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
 }
 
+.bottom-actions button {
+    padding: 10px 5px;
+    font-size: 0.75rem;
+    margin: 0;
+    font-weight: normal;
+}
+
+/* Modální okna */
+.overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Měsíční filtry */
 .chip {
     display: inline-block;
-    padding: 6px 12px;
+    padding: 6px 14px;
     background: var(--border);
     border-radius: 20px;
     font-size: 0.8rem;
     cursor: pointer;
-    margin-right: 5px;
+    margin-right: 8px;
+    margin-bottom: 5px;
+    transition: 0.2s;
 }
-.chip.selected { background: var(--primary); color: white; }
+
+.chip.selected {
+    background: var(--primary);
+    color: white;
+}
