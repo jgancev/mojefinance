@@ -32,6 +32,33 @@ body {
     transition: background 0.3s;
 }
 
+/* HLAVIČKA PC */
+.header-main {
+    max-width: 1500px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+}
+
+#headerActions { display: flex; gap: 5px; }
+
+/* MOBILNÍ ROZLOŽENÍ HLAVIČKY */
+@media (max-width: 600px) {
+    .header-main {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-areas: 
+            "email toggle"
+            "btns toggle";
+        gap: 5px 15px;
+    }
+    #userLabel { grid-area: email; align-self: end; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; }
+    #headerActions { grid-area: btns; align-self: start; }
+    #themeBtn { grid-area: toggle; align-self: center; height: 45px; margin: 0 !important; }
+}
+
 .dashboard-grid {
     display: grid;
     grid-template-columns: 320px 1fr 320px;
@@ -43,7 +70,6 @@ body {
 
 @media (max-width: 1100px) {
     .dashboard-grid { grid-template-columns: 1fr; padding: 10px; }
-    .header-main { flex-direction: column; gap: 10px; text-align: center; }
 }
 
 .card {
@@ -64,11 +90,7 @@ input, select, button {
     color: var(--text);
 }
 
-/* Fix pro čitelnost dropdownu v dark modu */
-select option {
-    background: var(--card);
-    color: var(--text);
-}
+select option { background: var(--card); color: var(--text); }
 
 button {
     background: var(--primary);
@@ -87,18 +109,9 @@ button {
     border-bottom: 1px solid var(--border);
 }
 
-.header-main {
-    max-width: 1500px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-}
-
 .overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); z-index: 1000;
+    background: rgba(0,0,0,0.85); z-index: 1000;
     display: flex; align-items: center; justify-content: center;
 }
 
