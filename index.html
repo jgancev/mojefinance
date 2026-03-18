@@ -102,10 +102,6 @@
         .tab-link { padding: 10px; cursor: pointer; opacity: 0.6; }
         .tab-link.active { opacity: 1; border-bottom: 2px solid var(--primary); font-weight: bold; }
         
-        .admin-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .admin-table th, .admin-table td { text-align: left; padding: 10px 5px; border-bottom: 1px solid var(--border); }
-        .btn-small { padding: 5px 8px; font-size: 0.75rem; width: auto; margin: 0 2px; }
-
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 1000;
@@ -188,8 +184,9 @@
 
 <div id="settingsOverlay" class="overlay hidden">
     <div class="card settings-card">
-        <div class="tab-nav" id="mainTabNav">
+        <div class="tab-nav">
             <span class="tab-link active" onclick="app.switchTab('general')">Obecné</span>
+            <span class="tab-link" onclick="app.switchTab('security')">Zabezpečení</span>
         </div>
 
         <div id="tab-general" class="tab-content">
@@ -200,11 +197,11 @@
             <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat kategorii</button>
         </div>
 
-        <div id="tab-admin" class="tab-content hidden">
-            <h3 style="margin-top:0">Správa uživatelů</h3>
-            <div id="adminUserList">
-                <p>Načítám data...</p>
-            </div>
+        <div id="tab-security" class="tab-content hidden">
+            <h3 style="margin-top:0">Změna hesla</h3>
+            <p style="font-size:0.85rem; opacity:0.7;">Zadejte nové heslo (minimálně 6 znaků).</p>
+            <input type="password" id="newPass" placeholder="Nové heslo">
+            <button id="changePassBtn">Aktualizovat heslo</button>
         </div>
 
         <button id="closeSettings" style="margin-top:20px;">Zavřít</button>
@@ -261,6 +258,8 @@
             get('saveIncBtn').onclick = () => this.saveTxn(true);
             get('addCatBtn').onclick = () => this.addCat();
             get('stCurr').onchange = (e) => this.updateCurr(e.target.value);
+            get('changePassBtn').onclick = () => this.changePassword();
+            
             document.addEventListener('click', e => {
                 if (!e.target.closest('.menu-container')) {
                     document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
@@ -287,39 +286,24 @@
         async logout() { await db.auth.signOut(); location.reload(); },
 
         switchTab(tab) {
-            document.querySelectorAll('.tab-link').forEach(l => l.classList.toggle('active', l.innerText.toLowerCase().includes(tab)));
+            document.querySelectorAll('.tab-link').forEach(l => {
+                l.classList.toggle('active', l.innerText.toLowerCase().includes(tab === 'general' ? 'obecné' : 'zabezpečení'));
+            });
             document.getElementById('tab-general').classList.toggle('hidden', tab !== 'general');
-            document.getElementById('tab-admin').classList.toggle('hidden', tab !== 'admin');
-            if (tab === 'admin') this.loadAdminData();
+            document.getElementById('tab-security').classList.toggle('hidden', tab !== 'security');
         },
 
-        async loadAdminData() {
-            const container = document.getElementById('adminUserList');
-            const { data: users } = await db.from('app_users').select('*');
-            let html = '<table class="admin-table"><tr><th>Uživatel</th><th>Akce</th></tr>';
-            if (users) {
-                users.forEach(u => {
-                    html += `<tr><td>${u.display_name || u.id.slice(0,8)}</td><td>
-                        <button class="btn-small" style="background:#e60050" onclick="app.adminDeleteUser('${u.id}')">Smazat</button>
-                    </td></tr>`;
-                });
-            }
-            html += '</table>';
-            container.innerHTML = html;
-        },
-
-        async adminDeleteUser(userId) {
-            if (confirm("Smazat uživatele i jeho data?")) {
-                await db.from('transactions').delete().eq('user_id', userId);
-                await db.from('app_users').delete().eq('id', userId);
-                this.loadAdminData();
-            }
+        async changePassword() {
+            const newPassword = document.getElementById('newPass').value;
+            if (newPassword.length < 6) { alert("Heslo musí mít aspoň 6 znaků."); return; }
+            const { error } = await db.auth.updateUser({ password: newPassword });
+            if (error) alert("Chyba: " + error.message);
+            else { alert("Heslo bylo úspěšně změněno."); document.getElementById('newPass').value = ''; }
         },
 
         async handleAuth(authUser) {
             this.user = authUser;
             let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
-            
             if (!prof) {
                 const newProf = { 
                     id: authUser.id, 
@@ -331,25 +315,9 @@
                 await db.from('app_users').insert([newProf]);
                 prof = newProf;
             }
-
             this.curr = prof.currency || 'Kč';
             this.user.custom_categories = prof.custom_categories || this.defCats;
             this.init();
-
-            // --- DYNAMICKÉ VLOŽENÍ ADMIN TABU ---
-            const adminEmail = "jgancev@seznam.cz"; // <--- ZDE ZADEJ SVŮJ EMAIL
-            
-            if (authUser.email === adminEmail || (prof && prof.role === 'admin')) {
-                const nav = document.getElementById('mainTabNav');
-                if (nav && !document.getElementById('adminTabLink')) {
-                    const adminSpan = document.createElement('span');
-                    adminSpan.id = 'adminTabLink';
-                    adminSpan.className = 'tab-link';
-                    adminSpan.innerText = 'Admin';
-                    adminSpan.onclick = () => app.switchTab('admin');
-                    nav.appendChild(adminSpan);
-                }
-            }
         },
 
         init() {
