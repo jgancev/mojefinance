@@ -340,13 +340,14 @@
             this.curr = prof.currency || 'Kč';
             this.user.custom_categories = prof.custom_categories || this.defCats;
             
-            // ZOBRAZENÍ ADMIN TABU PODLE ROLE
-            if (prof.role === 'admin') {
-                const adminTab = document.getElementById('adminTabLink');
-                if (adminTab) adminTab.classList.remove('hidden');
-            }
-            
             this.init();
+
+            if (prof.role === 'admin') {
+                setTimeout(() => {
+                    const adminTab = document.getElementById('adminTabLink');
+                    if (adminTab) adminTab.classList.remove('hidden');
+                }, 50);
+            }
         },
 
         init() {
