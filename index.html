@@ -60,17 +60,19 @@
             flex-grow: 1;
             overflow: hidden; /* Grid samotný ne-scrolluje */
             width: 100%;
+            height: calc(100vh - 75px); /* Výška okna minus hlavička */
         }
 
-        /* SLOUPEČKY */
+        /* SLOUPEČKY - ZAKÁZÁNÍ SCROLLU */
         #leftCol, #rightCol {
-            overflow-y: auto; /* Kdyby byly karty moc vysoké na malý monitor */
-            padding-right: 5px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* SCROLLOVACÍ PROSTŘEDEK */
+        /* SCROLLOVACÍ PROSTŘEDEK - JEDINÉ MÍSTO KDE FUNGUJE SCROLL */
         #midCol {
-            overflow-y: auto; /* Jen historie se scrolluje */
+            overflow-y: auto; 
             padding-right: 10px;
             scrollbar-width: thin; /* Pro Firefox */
             scrollbar-color: var(--border) transparent;
@@ -82,7 +84,7 @@
 
         @media (max-width: 1100px) {
             html, body { overflow: auto; height: auto; } /* Na mobilu vrátíme klasický scroll */
-            .dashboard-grid { grid-template-columns: 1fr; overflow: visible; }
+            .dashboard-grid { grid-template-columns: 1fr; overflow: visible; height: auto; }
             #midCol { overflow: visible; }
         }
 
@@ -344,6 +346,7 @@
 
         async handleAuth(authUser) {
             this.user = authUser;
+            // FIX: PŘIDÁN AWAIT PRO NAČTENÍ DAT
             let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
             if (!prof) {
                 const newProf = { 
@@ -357,7 +360,7 @@
                 prof = newProf;
             }
             this.curr = prof.currency || 'Kč';
-            this.user.custom_categories = prof.custom_categories || this.defCats;
+            this.user.custom_categories = (prof.custom_categories && prof.custom_categories.length > 0) ? prof.custom_categories : this.defCats;
             this.init();
         },
 
