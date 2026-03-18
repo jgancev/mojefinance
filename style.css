@@ -29,10 +29,9 @@ body {
     background: var(--bg);
     color: var(--text);
     margin: 0;
-    transition: background 0.3s;
+    transition: 0.3s;
 }
 
-/* HLAVIČKA PC */
 .header-main {
     max-width: 1500px;
     margin: 0 auto;
@@ -42,21 +41,21 @@ body {
     padding: 20px;
 }
 
-#headerActions { display: flex; gap: 5px; }
+#headerActions { display: flex; gap: 8px; }
 
-/* MOBILNÍ ROZLOŽENÍ HLAVIČKY */
+/* MOBILNÍ ROZLOŽENÍ DLE TVÉHO POPISU */
 @media (max-width: 600px) {
     .header-main {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr auto; /* Levý sloupec pro info, pravý pro toggle */
         grid-template-areas: 
             "email toggle"
             "btns toggle";
-        gap: 5px 15px;
+        gap: 5px;
     }
-    #userLabel { grid-area: email; align-self: end; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; }
-    #headerActions { grid-area: btns; align-self: start; }
-    #themeBtn { grid-area: toggle; align-self: center; height: 45px; margin: 0 !important; }
+    #userLabel { grid-area: email; text-align: left; font-size: 0.9rem; }
+    #headerActions { grid-area: btns; justify-content: flex-start; }
+    #themeBtn { grid-area: toggle; align-self: center; width: 100px !important; }
 }
 
 .dashboard-grid {
@@ -105,6 +104,7 @@ button {
 .txn-item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid var(--border);
 }
