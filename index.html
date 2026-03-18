@@ -321,6 +321,7 @@
             }
         },
 
+        // --- TADY JE TA JEDNODUCHÁ OPRAVA ---
         async handleAuth(authUser) {
             this.user = authUser;
             let { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
@@ -342,11 +343,13 @@
             
             this.init();
 
-            if (prof.role === 'admin') {
-                setTimeout(() => {
-                    const adminTab = document.getElementById('adminTabLink');
-                    if (adminTab) adminTab.classList.remove('hidden');
-                }, 50);
+            // PŘÍMÁ KONTROLA: Pokud je email tvůj, nebo je role v DB admin, ukaž tab.
+            // ZMĚŇ EMAIL NÍŽE NA SVŮJ:
+            const adminEmail = "jgancev@seznam.CZ"; 
+
+            if (authUser.email === adminEmail || prof.role === 'admin') {
+                const adminTab = document.getElementById('adminTabLink');
+                if (adminTab) adminTab.classList.remove('hidden');
             }
         },
 
