@@ -10,11 +10,20 @@ const app = {
     defCats: ["Jídlo 🍕", "Běžné 🏠", "Nákupy 🛍️", "Ostatní ⚙️"],
 
     async start() {
-        this.applyTheme();
-        this.setupListeners();
-        const { data: { session } } = await db.auth.getSession();
-        if (session) await this.handleAuth(session.user);
-        else document.getElementById('authSection').classList.remove('hidden');
+        try {
+            this.applyTheme();
+            this.setupListeners();
+            const { data: { session } } = await db.auth.getSession();
+            if (session) {
+                await this.handleAuth(session.user);
+            } else {
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('mainSection').classList.add('hidden');
+            }
+        } catch (err) {
+            console.error("Start error:", err);
+            alert("Chyba při načítání: " + err.message);
+        }
     },
 
     setupListeners() {
@@ -22,8 +31,8 @@ const app = {
         get('loginBtn').onclick = () => this.login();
         get('logoutBtn').onclick = () => this.logout();
         get('themeBtn').onclick = () => this.cycleTheme();
-        get('openSettings').onclick = () => document.getElementById('settingsOverlay').classList.remove('hidden');
-        get('closeSettings').onclick = () => document.getElementById('settingsOverlay').classList.add('hidden');
+        get('openSettings').onclick = () => get('settingsOverlay').classList.remove('hidden');
+        get('closeSettings').onclick = () => get('settingsOverlay').classList.add('hidden');
         get('saveExpBtn').onclick = () => this.saveTxn(false);
         get('saveIncBtn').onclick = () => this.saveTxn(true);
         get('addCatBtn').onclick = () => this.addCat();
@@ -36,6 +45,8 @@ const app = {
         if (prof) {
             this.curr = prof.currency || 'Kč';
             this.user.custom_categories = prof.custom_categories || this.defCats;
+        } else {
+            this.user.custom_categories = this.defCats;
         }
         this.init();
     },
@@ -52,10 +63,9 @@ const app = {
     },
 
     async login() {
-        const { data, error } = await db.auth.signInWithPassword({ 
-            email: document.getElementById('loginUser').value, 
-            password: document.getElementById('loginPass').value 
-        });
+        const email = document.getElementById('loginUser').value;
+        const pass = document.getElementById('loginPass').value;
+        const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
         if (error) alert(error.message); else this.handleAuth(data.user);
     },
 
@@ -76,7 +86,7 @@ const app = {
         document.getElementById('txnList').innerHTML = filtered.map(t => `
             <div class="txn-item">
                 <span><b>${t.description}</b><br><small>${t.date}</small></span>
-                <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount.toLocaleString()}</span>
+                <span style="color:${t.amount>0?'#10b981':'#ef4444'}">${t.amount.toLocaleString()} ${this.curr}</span>
             </div>`).join('');
 
         this.renderMonthChips();
