@@ -48,24 +48,27 @@
         }
 
         input, select, button {
-            width: 100%; padding: 12px; margin: 8px 0;
+            width: 100%; padding: 10px; margin: 5px 0;
             border-radius: 8px; border: 1px solid var(--border);
-            background: var(--card); color: var(--text); font-size: 1rem;
+            background: var(--card); color: var(--text); font-size: 0.95rem;
         }
 
         button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
 
-        /* HISTORIE S AKCEMI */
+        /* HISTORIE - INLINE EDITACE */
         .txn-item {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 0; border-bottom: 1px solid var(--border);
+            padding: 10px 0; border-bottom: 1px solid var(--border);
         }
-        .txn-info { flex-grow: 1; }
-        .txn-actions { display: flex; gap: 8px; margin-left: 15px; }
+        .txn-info { flex-grow: 1; display: flex; flex-direction: column; }
+        .txn-edit-fields { display: flex; gap: 5px; flex-grow: 1; }
+        .txn-edit-fields input { padding: 5px; margin: 0; font-size: 0.85rem; }
+
+        .txn-actions { display: flex; gap: 4px; margin-left: 10px; }
         .btn-icon { 
-            width: auto; padding: 5px 8px; margin: 0; background: none; 
-            color: var(--text); opacity: 0.4; font-size: 0.9rem;
+            width: auto; padding: 5px; margin: 0; background: none; 
+            color: var(--text); opacity: 0.5; font-size: 1.1rem;
         }
         .btn-icon:hover { opacity: 1; }
 
@@ -178,6 +181,7 @@
     const app = {
         user: null, txns: [], curMonth: 'all', isAdmin: false,
         curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
+        editingId: null,
         defCats: ["Jídlo 🍕", "Běžné 🏠", "Nákupy 🛍️", "Ostatní ⚙️"],
 
         async start() {
@@ -256,41 +260,61 @@
             document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
             
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
-            document.getElementById('txnList').innerHTML = filtered.map(t => `
+            
+            document.getElementById('txnList').innerHTML = filtered.map(t => {
+                const isEditing = this.editingId === t.id;
+                return `
                 <div class="txn-item">
-                    <div class="txn-info">
-                        <b>${t.description}</b><br><small>${t.date} • ${t.category}</small>
-                    </div>
-                    <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}; font-weight:bold">
-                        ${t.amount.toLocaleString()} ${this.curr}
-                    </span>
-                    <div class="txn-actions">
-                        <button class="btn-icon" onclick="app.editTxn('${t.id}')">✏️</button>
-                        <button class="btn-icon" onclick="app.deleteTxn('${t.id}')">🗑️</button>
-                    </div>
-                </div>`).join('');
+                    ${isEditing ? `
+                        <div class="txn-edit-fields">
+                            <input type="text" id="editDesc" value="${t.description}" style="width:50%">
+                            <input type="number" id="editAmt" value="${t.amount}" style="width:30%">
+                        </div>
+                        <div class="txn-actions">
+                            <button class="btn-icon" onclick="app.saveEdit('${t.id}')">💾</button>
+                            <button class="btn-icon" onclick="app.cancelEdit()">❌</button>
+                        </div>
+                    ` : `
+                        <div class="txn-info">
+                            <b>${t.description}</b>
+                            <small>${t.date} • ${t.category}</small>
+                        </div>
+                        <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}; font-weight:bold; white-space:nowrap; margin-left:10px">
+                            ${t.amount.toLocaleString()} ${this.curr}
+                        </span>
+                        <div class="txn-actions">
+                            <button class="btn-icon" onclick="app.startEdit('${t.id}')">📝</button>
+                            <button class="btn-icon" onclick="app.deleteTxn('${t.id}')">🗑️</button>
+                        </div>
+                    `}
+                </div>`;
+            }).join('');
             
             this.renderMonthChips();
             this.updateChart(filtered);
             this.calcDaily(total);
         },
 
+        startEdit(id) { this.editingId = id; this.updateUI(); },
+        cancelEdit() { this.editingId = null; this.updateUI(); },
+
+        async saveEdit(id) {
+            const newDesc = document.getElementById('editDesc').value;
+            const newAmt = parseFloat(document.getElementById('editAmt').value);
+            if (!newDesc || isNaN(newAmt)) return;
+            
+            await db.from('transactions').update({ 
+                description: newDesc, 
+                amount: newAmt 
+            }).eq('id', id);
+            
+            this.editingId = null;
+            this.loadTxns();
+        },
+
         async deleteTxn(id) {
             if (confirm('Opravdu smazat?')) {
                 await db.from('transactions').delete().eq('id', id);
-                this.loadTxns();
-            }
-        },
-
-        async editTxn(id) {
-            const t = this.txns.find(x => x.id === id);
-            const newDesc = prompt('Nový popis:', t.description);
-            const newAmt = prompt('Nová částka:', t.amount);
-            if (newDesc !== null && newAmt !== null) {
-                await db.from('transactions').update({ 
-                    description: newDesc, 
-                    amount: parseFloat(newAmt) 
-                }).eq('id', id);
                 this.loadTxns();
             }
         },
