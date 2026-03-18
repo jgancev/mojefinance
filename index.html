@@ -3,80 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Finance</title>
+    <title>Finance App</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<div id="authSection" class="hidden container">
-    <div class="card">
-        <h2 id="t-loginTitle">Přihlášení</h2>
+<div id="authSection" class="hidden">
+    <div class="card" style="max-width: 380px; margin: 100px auto;">
+        <h2>Přihlášení</h2>
         <input type="email" id="loginUser" placeholder="Email">
         <input type="password" id="loginPass" placeholder="Heslo">
-        <button id="loginBtn">Přihlásit</button>
-        <p id="toReg" style="cursor:pointer; text-align:center">Nemáte účet? Registrace</p>
+        <button id="loginBtn">Vstoupit</button>
     </div>
 </div>
 
-<div id="mainSection" class="hidden container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div id="mainSection" class="hidden">
+    <div style="max-width: 1500px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 25px;">
+        <h1 style="margin:0">Přehled</h1>
         <div>
-            <strong id="userLabel"></strong>
+            <span id="userLabel" style="color:var(--text-secondary); margin-right:15px"></span>
             <button class="settings-btn" id="openSettings">⚙️</button>
-            <button class="settings-btn hidden" id="openAdmin" style="background:#7c3aed">👑 Admin</button>
+            <button class="settings-btn hidden" id="openAdmin">👑 Admin</button>
+            <button class="settings-btn" id="themeBtn">🌓</button>
         </div>
-        <button class="settings-btn" id="themeBtn">🌓 Mode</button>
     </div>
-
-    <div class="card" style="text-align:center">
-        <h1 id="balToday" style="margin:0">0</h1>
-        <small id="t-onAccount">Zůstatek</small>
-    </div>
-
-    <div class="card">
-        <h3>Nová transakce</h3>
-        <input type="date" id="txnDate">
-        <input type="text" id="txnDesc" placeholder="Popis">
-        <input type="number" id="txnAmt" placeholder="Částka (mínus pro výdaj)">
-        <select id="txnCat"></select>
-        <button id="saveTxnBtn">Uložit transakci</button>
-    </div>
-
-    <div class="card">
-        <h3>Historie</h3>
-        <div id="monthChips"></div>
-        <div id="txnList"></div>
-    </div>
-
-    <div class="card"><canvas id="myChart"></canvas></div>
     
-    <button id="logoutBtn" style="background:#64748b">Odhlásit se</button>
+    <div class="dashboard-grid">
+        <div id="leftCol">
+            <div class="card">
+                <div class="stat-val" id="balToday">0</div>
+                <small>Aktuální zůstatek</small>
+            </div>
+            <div class="card">
+                <h3 style="color:var(--accent-red)">Výdaj</h3>
+                <input type="date" id="expDate">
+                <input type="text" id="expDesc" placeholder="Popis">
+                <input type="number" id="expAmt" placeholder="0">
+                <select id="expCat"></select>
+                <button id="saveExpBtn" style="background:var(--accent-red)">Uložit</button>
+            </div>
+            <div class="card">
+                <h3 style="color:var(--accent-green)">Příjem</h3>
+                <input type="date" id="incDate">
+                <input type="text" id="incDesc" placeholder="Popis">
+                <input type="number" id="incAmt" placeholder="0">
+                <button id="saveIncBtn" style="background:var(--accent-green)">Uložit</button>
+            </div>
+        </div>
+
+        <div id="midCol">
+            <div class="card">
+                <h3>Historie</h3>
+                <div id="monthChips"></div>
+                <div id="txnList"></div>
+            </div>
+        </div>
+
+        <div id="rightCol">
+            <div class="card">
+                <small>Denní limit</small>
+                <div id="dailyAvg" style="font-size: 1.8rem; font-weight: 800; color:var(--accent-blue); text-align:center">0</div>
+            </div>
+            <div class="card"><canvas id="myChart"></canvas></div>
+            <button id="logoutBtn" style="background:var(--border)">Odhlásit se</button>
+        </div>
+    </div>
 </div>
 
 <div id="settingsOverlay" class="overlay hidden">
     <div class="card" style="width: 90%; max-width: 400px;">
         <h2>Nastavení</h2>
-        <label>Měna</label>
         <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
-        <h4>Kategorie</h4>
         <div id="catEditor"></div>
-        <button id="addCatBtn">+ Přidat</button>
-        <button id="closeSettings" style="background:#475569; margin-top:10px">Zavřít</button>
+        <button id="addCatBtn">+ Kategorie</button>
+        <button id="closeSettings" style="background:var(--border)">Zavřít</button>
     </div>
 </div>
 
 <div id="adminOverlay" class="overlay hidden">
-    <div class="card" style="width: 95%; max-width: 600px; max-height: 80vh; overflow-y: auto;">
-        <div style="display:flex; justify-content:space-between">
-            <h2>Admin Dashboard</h2>
-            <button id="closeAdmin" style="width:auto; background:none; color:var(--text); font-size:1.5rem">✕</button>
-        </div>
-        <div id="adminStats" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px">
-            <div class="card" style="margin:0; text-align:center"><small>Uživatelů</small><br><b id="statUsers">0</b></div>
-            <div class="card" style="margin:0; text-align:center"><small>Transakcí</small><br><b id="statTxns">0</b></div>
-        </div>
+    <div class="card" style="width: 95%; max-width: 600px;">
+        <h2>Admin Panel</h2>
         <div id="adminUserList"></div>
+        <button id="closeAdmin" style="background:var(--border)">Zavřít</button>
     </div>
 </div>
 
