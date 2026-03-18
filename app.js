@@ -48,40 +48,38 @@ const app = {
         document.getElementById('mainSection').classList.remove('hidden');
         if (this.isAdmin) document.getElementById('openAdmin').classList.remove('hidden');
         document.getElementById('userLabel').innerText = this.user.email;
-        const today = new Date().toISOString().slice(0,10);
-        document.getElementById('expDate').value = today;
-        document.getElementById('incDate').value = today;
         this.renderCats();
         this.loadTxns();
     },
 
     async login() {
-        const email = document.getElementById('loginUser').value;
-        const pass = document.getElementById('loginPass').value;
-        const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+        const { data, error } = await db.auth.signInWithPassword({ 
+            email: document.getElementById('loginUser').value, 
+            password: document.getElementById('loginPass').value 
+        });
         if (error) alert(error.message); else this.handleAuth(data.user);
     },
 
     async logout() { await db.auth.signOut(); location.reload(); },
 
-    // --- ADMIN FUNKCE ---
+    // ADMIN LOGIKA
     async verifyAdmin() {
-        const pass = prompt("Zadejte admin heslo pro potvrzení akce:");
+        const pass = prompt("Potvrďte akci svým admin heslem:");
         if (!pass) return false;
         const { error } = await db.auth.signInWithPassword({ email: this.user.email, password: pass });
-        if (error) { alert("Chybné heslo!"); return false; }
-        return true;
+        return !error;
     },
 
     async showAdmin() {
         document.getElementById('adminOverlay').classList.remove('hidden');
         const { data: users } = await db.from('app_users').select('*');
         const list = document.getElementById('adminUserList');
+        
         list.innerHTML = (users || []).map(u => `
-            <div class="txn-item" style="align-items:center; gap:10px">
-                <span style="font-size:0.85rem; flex:1"><b>${u.email || 'Bez e-mailu'}</b><br><small>${u.id.slice(0,8)}</small></span>
+            <div class="txn-item">
+                <span style="font-size:0.9rem"><b>${u.email || u.id.slice(0,8)}</b></span>
                 <div style="display:flex; gap:5px">
-                    <button onclick="app.adminAction('${u.id}', 'reset')" style="width:auto; padding:5px 10px; background:var(--primary); font-size:0.7rem">Reset</button>
+                    <button onclick="app.adminAction('${u.id}', 'reset')" style="width:auto; padding:5px 10px; background:var(--primary); font-size:0.7rem">Reset Hesla</button>
                     <button onclick="app.adminAction('${u.id}', 'delete')" style="width:auto; padding:5px 10px; background:var(--expense); font-size:0.7rem">Smazat</button>
                 </div>
             </div>
@@ -89,20 +87,18 @@ const app = {
     },
 
     async adminAction(uid, type) {
-        if (!await this.verifyAdmin()) return;
-        if (type === 'reset') {
+        if (!await this.verifyAdmin()) { alert("Ověření selhalo."); return; }
+        if (type === 'delete' && confirm("Smazat uživatele?")) {
+            await db.from('app_users').delete().eq('id', uid);
+            this.showAdmin();
+        } else if (type === 'reset') {
             const { data } = await db.from('app_users').select('email').eq('id', uid).single();
             await db.auth.resetPasswordForEmail(data.email);
-            alert("Resetovací e-mail odeslán.");
-        } else if (type === 'delete') {
-            if (confirm("Opravdu smazat uživatele?")) {
-                await db.from('app_users').delete().eq('id', uid);
-                this.showAdmin();
-            }
+            alert("Reset e-mail odeslán uživateli " + data.email);
         }
     },
 
-    // --- LOGIKA DAT ---
+    // OSTATNÍ LOGIKA (TXNS, CHART ATD.)
     async loadTxns() {
         const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: false});
         this.txns = data || [];
@@ -113,31 +109,20 @@ const app = {
         const now = new Date().toISOString().slice(0,10);
         const total = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
         document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
-        
         const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
         document.getElementById('txnList').innerHTML = filtered.map(t => `
             <div class="txn-item">
-                <span><b>${t.description}</b><br><small>${t.date} • ${t.category}</small></span>
+                <span><b>${t.description}</b><br><small>${t.date}</small></span>
                 <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount.toLocaleString()}</span>
-            </div>
-        `).join('');
-
+            </div>`).join('');
         this.renderMonthChips();
         this.updateChart(filtered);
-        this.calcDaily(total);
-    },
-
-    calcDaily(bal) {
-        const lastDay = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-        const days = Math.max(1, lastDay - new Date().getDate());
-        document.getElementById('dailyAvg').innerText = `${Math.round(bal / days).toLocaleString()} ${this.curr}`;
     },
 
     renderMonthChips() {
         const months = ['all', ...new Set(this.txns.map(t => t.date.slice(0,7)).sort().reverse())];
         document.getElementById('monthChips').innerHTML = months.map(m => `
-            <span class="chip ${this.curMonth===m?'selected':''}" onclick="app.setMonth('${m}')">${m}</span>
-        `).join('');
+            <span class="chip ${this.curMonth===m?'selected':''}" onclick="app.setMonth('${m}')">${m}</span>`).join('');
     },
     setMonth(m) { this.curMonth = m; this.updateUI(); },
 
@@ -147,8 +132,8 @@ const app = {
         const desc = document.getElementById(pre+'Desc').value;
         if (!desc || isNaN(amt)) return;
         await db.from('transactions').insert([{
-            user_id: this.user.id, description: desc, amount: isInc ? amt : -amt,
-            category: isInc ? 'Příjem' : document.getElementById('expCat').value,
+            user_id: this.user.id, amount: isInc?amt:-amt, description: desc,
+            category: isInc?'Příjem':document.getElementById('expCat').value,
             date: document.getElementById(pre+'Date').value
         }]);
         this.loadTxns();
@@ -158,8 +143,7 @@ const app = {
         const cats = this.user.custom_categories || this.defCats;
         document.getElementById('expCat').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
         document.getElementById('catEditor').innerHTML = cats.map((c, i) => `
-            <div style="display:flex; gap:5px; margin-bottom:5px"><input value="${c}" onchange="app.editCat(${i}, this.value)"></div>
-        `).join('');
+            <div style="display:flex; gap:5px; margin-bottom:5px"><input value="${c}" onchange="app.editCat(${i}, this.value)"></div>`).join('');
     },
     async editCat(i, v) { this.user.custom_categories[i] = v; await this.savePref(); },
     async addCat() { this.user.custom_categories.push("Nová"); await this.savePref(); this.renderCats(); },
