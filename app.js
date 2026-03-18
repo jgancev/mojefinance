@@ -7,66 +7,48 @@ let chart = null;
 
 const app = {
     user: null, txns: [], curMonth: 'all', isAdmin: false,
-    lang: localStorage.getItem('lang') || 'cs', 
-    curr: 'Kč', 
-    theme: localStorage.getItem('theme') || 'light',
-    defCats: ["Jídlo 🍕", "Běžné 🏠", "Blbosti 🛍️", "Nadstandartní ✨", "Spoření 💰"],
+    lang: 'cs', curr: 'Kč', theme: localStorage.getItem('theme') || 'light',
+    defCats: ["Jídlo 🍕", "Běžné 🏠", "Blbosti 🛍️", "Spoření 💰"],
 
     async start() {
         this.applyTheme();
-        this.applyLang();
         this.setupEventListeners();
-        
         const { data: { session } } = await db.auth.getSession();
-        if (session) { 
-            await this.handleAuth(session.user); 
-        } else { 
-            document.getElementById('authSection').classList.remove('hidden'); 
-        }
+        if (session) await this.handleAuth(session.user);
+        else document.getElementById('authSection').classList.remove('hidden');
     },
 
     setupEventListeners() {
-        const safeClick = (id, fn) => { const el = document.getElementById(id); if(el) el.onclick = fn; };
-        safeClick('loginBtn', () => this.login());
-        safeClick('regBtn', () => this.register());
-        safeClick('logoutBtn', () => this.logout());
-        safeClick('toggleLangBtn', () => this.toggleLang());
-        safeClick('themeBtn', () => this.cycleTheme());
-        safeClick('openSettings', () => this.showSettings());
-        safeClick('closeSettings', () => this.hideSettings());
-        safeClick('openAdmin', () => this.showAdmin());
-        safeClick('closeAdmin', () => this.hideAdmin());
-        safeClick('saveExpBtn', () => this.saveTxn(false));
-        safeClick('saveIncBtn', () => this.saveTxn(true));
-        safeClick('addCatBtn', () => this.addCat());
-        
-        document.getElementById('toReg').onclick = (e) => { e.preventDefault(); this.toggleAuth(true); };
-        document.getElementById('toLogin').onclick = (e) => { e.preventDefault(); this.toggleAuth(false); };
-        document.getElementById('stLang').onchange = (e) => this.updatePref('lang', e.target.value);
-        document.getElementById('stCurr').onchange = (e) => this.updatePref('curr', e.target.value);
+        const click = (id, fn) => { const el = document.getElementById(id); if(el) el.onclick = fn; };
+        click('loginBtn', () => this.login());
+        click('logoutBtn', () => this.logout());
+        click('themeBtn', () => this.cycleTheme());
+        click('openSettings', () => this.showModal('settingsOverlay'));
+        click('closeSettings', () => this.hideModal('settingsOverlay'));
+        click('openAdmin', () => this.showAdmin());
+        click('closeAdmin', () => this.hideModal('adminOverlay'));
+        click('saveTxnBtn', () => this.saveTxn());
+        click('addCatBtn', () => this.addCat());
     },
 
     async handleAuth(authUser) {
         this.user = authUser;
-        try {
-            const { data: profile } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
-            if (profile) {
-                this.lang = profile.lang || this.lang; 
-                this.curr = profile.currency || this.curr;
-                this.user.custom_categories = profile.custom_categories || this.defCats;
-                this.isAdmin = (profile.role === 'admin');
-            }
-        } catch (err) { console.error(err); }
+        const { data: profile } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
+        if (profile) {
+            this.curr = profile.currency || this.curr;
+            this.isAdmin = (profile.role === 'admin');
+            this.user.custom_categories = profile.custom_categories || this.defCats;
+        }
         this.init();
     },
 
     init() {
         document.getElementById('authSection').classList.add('hidden');
         document.getElementById('mainSection').classList.remove('hidden');
-        if (this.isAdmin) document.getElementById('openAdmin')?.classList.remove('hidden');
-        this.applyLang();
-        document.getElementById('userLabel').innerText = `👤 ${this.user.email}`;
-        this.renderCats(); 
+        if (this.isAdmin) document.getElementById('openAdmin').classList.remove('hidden');
+        document.getElementById('userLabel').innerText = this.user.email;
+        document.getElementById('txnDate').value = new Date().toISOString().slice(0,10);
+        this.renderCats();
         this.loadTxns();
     },
 
@@ -75,140 +57,80 @@ const app = {
             email: document.getElementById('loginUser').value, 
             password: document.getElementById('loginPass').value 
         });
-        if (error) return alert(error.message);
-        await this.handleAuth(data.user);
-    },
-
-    async register() {
-        const { data, error } = await db.auth.signUp({ 
-            email: document.getElementById('regUser').value, 
-            password: document.getElementById('regPass').value 
-        });
-        if (error) return alert(error.message);
-        if (data.user) {
-            await db.from('app_users').insert([{ id: data.user.id, role: 'user', custom_categories: this.defCats }]);
-            alert("Registrace OK, přihlas se."); this.toggleAuth(false);
-        }
+        if (error) alert(error.message); else this.handleAuth(data.user);
     },
 
     async logout() { await db.auth.signOut(); location.reload(); },
 
-    async showAdmin() {
-        document.getElementById('adminOverlay').classList.remove('hidden');
-        this.loadAdminData();
-    },
-    hideAdmin() { document.getElementById('adminOverlay').classList.add('hidden'); },
+    showModal(id) { document.getElementById(id).classList.remove('hidden'); },
+    hideModal(id) { document.getElementById(id).classList.add('hidden'); },
 
-    async loadAdminData() {
+    async showAdmin() {
+        this.showModal('adminOverlay');
         const { count: uCount } = await db.from('app_users').select('*', { count: 'exact', head: true });
         const { count: tCount } = await db.from('transactions').select('*', { count: 'exact', head: true });
-        document.getElementById('statUsers').innerText = uCount || 0;
-        document.getElementById('statTxns').innerText = tCount || 0;
-        document.getElementById('statAvg').innerText = (tCount / (uCount || 1)).toFixed(1);
+        document.getElementById('statUsers').innerText = uCount;
+        document.getElementById('statTxns').innerText = tCount;
 
-        const { data: users } = await db.from('app_users').select('id, role, lang');
+        const { data: users } = await db.from('app_users').select('id, role');
         document.getElementById('adminUserList').innerHTML = users.map(u => `
-            <div class="admin-row">
-                <div style="font-size:0.7rem; font-family:monospace">${u.id}</div>
-                <div>${u.lang}</div>
-                <div><button onclick="alert('Reset poslán')" style="padding:4px; font-size:0.7rem">Reset</button></div>
+            <div class="txn-item">
+                <small>${u.id.slice(0,8)}... (${u.role})</small>
+                <button onclick="alert('Reset')" style="width:auto; padding:2px 10px">Reset</button>
             </div>`).join('');
     },
 
     async loadTxns() {
-        const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: true});
-        this.txns = data || []; 
+        const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: false});
+        this.txns = data || [];
         this.updateUI();
     },
 
     updateUI() {
-        const now = new Date().toISOString().slice(0,10);
-        const balToday = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
-        const balFuture = this.txns.reduce((a, b) => a + b.amount, 0);
-        document.getElementById('balToday').innerText = `${balToday.toLocaleString()} ${this.curr}`;
-        document.getElementById('balFuture').innerText = `${balFuture.toLocaleString()} ${this.curr}`;
-        document.getElementById('dailyAvg').innerText = `${Math.round(balToday / this.calcDays()).toLocaleString()} ${this.curr}`;
+        const total = this.txns.reduce((a, b) => a + b.amount, 0);
+        document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
         
         const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
-        this.renderHistory(filtered, now);
-        this.updateChart(filtered);
-        this.renderMonthChips();
-    },
-
-    renderMonthChips() {
-        const months = ['all', ...new Set(this.txns.map(t => t.date.slice(0,7)).sort().reverse())];
-        document.getElementById('monthChips').innerHTML = months.map(m => `
-            <span class="chip ${this.curMonth===m?'selected':''}" onclick="app.setMonth('${m}')">
-                ${m==='all' ? (i18n[this.lang].all || 'Vše') : m}
-            </span>`).join('');
-    },
-    setMonth(m) { this.curMonth = m; this.updateUI(); },
-
-    renderHistory(filtered, now) {
-        document.getElementById('txnList').innerHTML = filtered.slice().reverse().map(t => `
-            <div class="txn-item ${t.date > now ? 'future' : ''}">
-                <div><strong>${t.description}</strong><br><small>${t.date}</small></div>
-                <div style="color:${t.amount>0?'var(--income)':'var(--expense)'}">
-                    <strong>${t.amount.toLocaleString()}</strong>
-                    <i class="icon-btn" onclick="app.delTxn('${t.id}')">✕</i>
-                </div>
+        
+        document.getElementById('txnList').innerHTML = filtered.map(t => `
+            <div class="txn-item">
+                <span><b>${t.description}</b><br><small>${t.date} • ${t.category}</small></span>
+                <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount} ${this.curr}</span>
             </div>`).join('');
+        
+        this.updateChart(filtered);
     },
 
-    async saveTxn(isInc) {
-        const prefix = isInc ? 'inc' : 'exp';
-        const d = document.getElementById(prefix+'Date').value;
-        const desc = document.getElementById(prefix+'Desc').value;
-        const amt = parseFloat(document.getElementById(prefix+'Amt').value);
-        if(!desc || isNaN(amt)) return;
+    async saveTxn() {
+        const amt = parseFloat(document.getElementById('txnAmt').value);
+        const desc = document.getElementById('txnDesc').value;
+        if (!desc || isNaN(amt)) return;
         await db.from('transactions').insert([{ 
-            user_id: this.user.id, description: desc, amount: isInc?amt:-amt, 
-            category: isInc?'Příjem':document.getElementById('expCat').value, date: d 
+            user_id: this.user.id, amount: amt, description: desc, 
+            category: document.getElementById('txnCat').value, 
+            date: document.getElementById('txnDate').value 
         }]);
         this.loadTxns();
     },
 
-    async delTxn(id) { if(confirm('Smazat?')) { await db.from('transactions').delete().eq('id', id); this.loadTxns(); } },
-
     renderCats() {
-        document.getElementById('expCat').innerHTML = this.user.custom_categories.map(c => `<option>${c}</option>`).join('');
-        document.getElementById('catEditor').innerHTML = this.user.custom_categories.map((c, i) => `
-            <div style="display:flex; gap:5px; margin-bottom:5px">
-                <input type="text" value="${c}" onchange="app.editCat(${i}, this.value)">
-                <button onclick="app.delCat(${i})" style="width:auto; background:var(--expense)">✕</button>
-            </div>`).join('');
+        const cats = this.user.custom_categories || this.defCats;
+        document.getElementById('txnCat').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+        document.getElementById('catEditor').innerHTML = cats.map((c, i) => `
+            <div style="display:flex; gap:5px"><input value="${c}" onchange="app.editCat(${i}, this.value)"></div>
+        `).join('');
     },
-    async editCat(i,v) { this.user.custom_categories[i]=v; await this.savePref(); },
+    async editCat(i, v) { this.user.custom_categories[i] = v; await this.savePref(); },
     async addCat() { this.user.custom_categories.push("Nová"); await this.savePref(); this.renderCats(); },
-    async delCat(i) { this.user.custom_categories.splice(i,1); await this.savePref(); this.renderCats(); },
+    async savePref() { await db.from('app_users').update({ custom_categories: this.user.custom_categories }).eq('id', this.user.id); },
 
-    async updatePref(key, val) { 
-        this[key] = val; if(key==='lang') localStorage.setItem('lang', val); 
-        await this.savePref(); this.applyLang(); this.updateUI(); 
-    },
-    async savePref() { if(this.user) await db.from('app_users').update({ custom_categories:this.user.custom_categories, lang: this.lang, currency: this.curr }).eq('id', this.user.id); },
-
-    applyLang() {
-        const l = i18n[this.lang];
-        Object.keys(l).forEach(k => { const el = document.getElementById('t-'+k); if(el) el.innerText = l[k]; });
-        this.updateThemeBtn();
-    },
-
-    toggleLang() { this.lang = this.lang === 'cs' ? 'en' : 'cs'; localStorage.setItem('lang', this.lang); this.applyLang(); },
-    showSettings() { document.getElementById('settingsOverlay').classList.remove('hidden'); },
-    hideSettings() { document.getElementById('settingsOverlay').classList.add('hidden'); },
-    toggleAuth(reg) { document.getElementById('loginBox').classList.toggle('hidden', reg); document.getElementById('regBox').classList.toggle('hidden', !reg); },
-    calcDays() {
-        const today = new Date(); const target = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-        let wd = 0; while(true) { let d = target.getDay(); if(d !== 0 && d !== 6) wd++; if(wd === 2) break; target.setDate(target.getDate()+1); }
-        return Math.max(1, Math.ceil((target - today) / 86400000));
-    },
     updateChart(list) {
         const ctx = document.getElementById('myChart'); if(!ctx) return;
         const data = {}; list.filter(t => t.amount < 0).forEach(t => data[t.category] = (data[t.category]||0) + Math.abs(t.amount));
         if(chart) chart.destroy();
-        chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] }, options: { plugins: { legend: { display:false } } } });
+        chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'] }] }, options: { plugins: { legend: { display:false } } } });
     },
+
     cycleTheme() {
         this.theme = this.theme === 'light' ? 'dark' : (this.theme === 'dark' ? 'amoled' : 'light');
         localStorage.setItem('theme', this.theme); this.applyTheme();
@@ -216,10 +138,6 @@ const app = {
     applyTheme() {
         document.body.classList.remove('dark', 'amoled');
         if (this.theme !== 'light') document.body.classList.add(this.theme);
-        this.updateThemeBtn();
-    },
-    updateThemeBtn() {
-        const btn = document.getElementById('themeBtn'); if (btn) btn.innerText = `🌓 Mode: ${this.theme}`;
     }
 };
 
