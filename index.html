@@ -21,39 +21,39 @@
 <div id="mainSection" class="hidden">
     <div class="header-main">
         <strong id="userLabel"></strong>
-        <button id="themeBtn" style="width:auto">🌓 Mode</button>
         <div id="headerActions">
             <button id="openSettings" style="width:auto">⚙️</button>
             <button id="openAdmin" class="hidden" style="width:auto; background:#a855f7">👑 Admin</button>
         </div>
+        <button id="themeBtn" style="width:auto">🌓 Mode</button>
     </div>
     
     <div class="dashboard-grid">
         <div id="leftCol">
             <div class="card">
                 <div id="balToday" style="font-size:2rem; font-weight:800; text-align:center; color:var(--income)">0</div>
-                <p style="text-align:center; opacity:0.7; margin:0">Aktuální zůstatek</p>
+                <p style="text-align:center; opacity:0.7; margin:0">Zůstatek</p>
             </div>
             <div class="card">
-                <h3 style="color:var(--expense); margin:0">Výdaj</h3>
+                <h3 style="color:var(--expense)">Výdaj</h3>
                 <input type="date" id="expDate">
                 <input type="text" id="expDesc" placeholder="Popis">
-                <input type="number" id="expAmt" placeholder="Částka">
+                <input type="number" id="expAmt">
                 <select id="expCat"></select>
                 <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
             </div>
             <div class="card">
-                <h3 style="color:var(--income); margin:0">Příjem</h3>
+                <h3 style="color:var(--income)">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis">
-                <input type="number" id="incAmt" placeholder="Částka">
+                <input type="number" id="incAmt">
                 <button id="saveIncBtn" style="background:var(--income)">Uložit</button>
             </div>
         </div>
 
         <div id="midCol">
             <div class="card">
-                <h3 style="margin-top:0">Historie</h3>
+                <h3>Historie</h3>
                 <div id="monthChips" style="overflow-x:auto; white-space:nowrap; margin-bottom:10px"></div>
                 <div id="txnList"></div>
             </div>
@@ -62,7 +62,7 @@
         <div id="rightCol">
             <div class="card">
                 <p style="text-align:center; margin:0">Denní limit</p>
-                <div id="dailyAvg" style="font-size:2rem; font-weight:800; text-align:center; color:var(--primary)">0</div>
+                <div id="dailyAvg" style="font-size:2rem; font-weight:800; text-align:center">0</div>
             </div>
             <div class="card"><canvas id="myChart"></canvas></div>
             <button id="logoutBtn" style="background:var(--border); color:var(--text)">Odhlásit se</button>
@@ -76,8 +76,7 @@
             <h2>Nastavení</h2>
             <button id="closeSettings" style="width:auto; background:none; color:var(--text); font-size:1.5rem">✕</button>
         </div>
-        <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option><option value="$">$</option></select>
-        <h4>Moje kategorie</h4>
+        <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
         <div id="catEditor"></div>
         <button id="addCatBtn">+ Přidat</button>
     </div>
@@ -86,7 +85,7 @@
 <div id="adminOverlay" class="overlay hidden">
     <div class="card" style="width:95%; max-width:650px; max-height:85vh; overflow-y:auto">
         <div style="display:flex; justify-content:space-between; align-items:center">
-            <h2>👑 Admin Panel</h2>
+            <h2>Admin Panel</h2>
             <button id="closeAdmin" style="width:auto; background:none; color:var(--text); font-size:1.5rem">✕</button>
         </div>
         <div id="adminUserList"></div>
