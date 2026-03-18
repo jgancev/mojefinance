@@ -117,7 +117,7 @@
 <div id="mainSection" class="hidden">
     <div class="header-main">
         <button id="userBtn"></button>
-        <button id="themeBtn" style="width:auto; padding: 8px 15px;">Tmavý</button>
+        <button id="themeBtn" style="width:auto; padding: 8px 15px;">🌙 Tmavý</button>
     </div>
     
     <div class="dashboard-grid">
@@ -418,7 +418,7 @@
         },
         applyTheme() {
             document.body.classList.toggle('dark', this.theme === 'dark');
-            document.getElementById('themeBtn').innerText = this.theme === 'dark' ? 'Světlý' : 'Tmavý';
+            document.getElementById('themeBtn').innerText = this.theme === 'dark' ? '🌙 Tmavý' : '☀️ Světlý';
         }
     };
 
