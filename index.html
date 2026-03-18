@@ -29,9 +29,8 @@
             background: none; border: none; color: inherit;
             font-weight: 800; cursor: pointer; padding: 5px 10px;
             margin-left: -10px; border-radius: 6px; text-align: left;
-            font-size: 1rem; width: auto; display: inline-block;
+            font-size: 1rem; width: auto;
         }
-        #userBtn:hover { background: rgba(128,128,128,0.1); }
 
         .dashboard-grid {
             display: grid; grid-template-columns: 320px 1fr 320px;
@@ -48,27 +47,27 @@
         }
 
         input, select, button {
-            width: 100%; padding: 10px; margin: 5px 0;
+            width: 100%; padding: 12px; margin: 8px 0;
             border-radius: 8px; border: 1px solid var(--border);
-            background: var(--card); color: var(--text); font-size: 0.95rem;
+            background: var(--card); color: var(--text); font-size: 1rem;
         }
 
         button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
 
-        /* HISTORIE - INLINE EDITACE */
+        /* HISTORIE - TA PŮVODNÍ STRUKTURA */
         .txn-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 10px 0; border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
         }
-        .txn-info { flex-grow: 1; display: flex; flex-direction: column; }
-        .txn-edit-fields { display: flex; gap: 5px; flex-grow: 1; }
-        .txn-edit-fields input { padding: 5px; margin: 0; font-size: 0.85rem; }
+        .txn-main { flex: 1; display: flex; justify-content: space-between; align-items: center; margin-right: 10px; }
+        .txn-edit-mode { display: flex; gap: 5px; flex: 1; }
+        .txn-edit-mode input { padding: 5px; margin: 0; height: 35px; }
 
-        .txn-actions { display: flex; gap: 4px; margin-left: 10px; }
         .btn-icon { 
-            width: auto; padding: 5px; margin: 0; background: none; 
-            color: var(--text); opacity: 0.5; font-size: 1.1rem;
+            width: auto; padding: 4px 6px; margin: 0; background: none; 
+            color: var(--text); opacity: 0.6; font-size: 1rem;
         }
         .btn-icon:hover { opacity: 1; }
 
@@ -109,11 +108,11 @@
     <div class="dashboard-grid">
         <div id="leftCol">
             <div class="card">
-                <div id="balToday" style="font-size:2rem; font-weight:800; text-align:center">0</div>
-                <p style="text-align:center; opacity:0.7; margin:0">Zůstatek</p>
+                <div id="balToday" style="font-size:2.2rem; font-weight:800; text-align:center">0</div>
+                <p style="text-align:center; opacity:0.6; margin:0; font-size: 0.9rem;">Zůstatek</p>
             </div>
             <div class="card">
-                <h3 style="color:var(--expense)">Výdaj</h3>
+                <h3 style="color:var(--expense); margin-top:0">Výdaj</h3>
                 <input type="date" id="expDate">
                 <input type="text" id="expDesc" placeholder="Popis">
                 <input type="number" id="expAmt" placeholder="Částka">
@@ -121,7 +120,7 @@
                 <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
             </div>
             <div class="card">
-                <h3 style="color:var(--income)">Příjem</h3>
+                <h3 style="color:var(--income); margin-top:0">Příjem</h3>
                 <input type="date" id="incDate">
                 <input type="text" id="incDesc" placeholder="Popis">
                 <input type="number" id="incAmt" placeholder="Částka">
@@ -131,19 +130,19 @@
 
         <div id="midCol">
             <div class="card">
-                <h3>Historie</h3>
-                <div id="monthChips" style="overflow-x:auto; white-space:nowrap; margin-bottom:10px"></div>
+                <h3 style="margin-top:0">Historie</h3>
+                <div id="monthChips" style="overflow-x:auto; white-space:nowrap; margin-bottom:15px; padding-bottom:5px"></div>
                 <div id="txnList"></div>
             </div>
         </div>
 
         <div id="rightCol">
             <div class="card">
-                <p style="text-align:center; margin:0">Denní limit</p>
+                <p style="text-align:center; margin:0; opacity:0.6; font-size:0.9rem">Denní limit</p>
                 <div id="dailyAvg" style="font-size:2rem; font-weight:800; text-align:center">0</div>
             </div>
             <div class="card"><canvas id="myChart"></canvas></div>
-            <button id="logoutBtn" style="background:var(--border); color:var(--text)">Odhlásit se</button>
+            <button id="logoutBtn" style="background:var(--border); color:var(--text); font-size: 0.9rem">Odhlásit se</button>
         </div>
     </div>
 </div>
@@ -156,18 +155,18 @@
         </div>
         
         <div id="personalTab">
-            <h2>Nastavení</h2>
+            <h2 style="margin-top:0">Nastavení</h2>
             <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
-            <div id="catEditor"></div>
-            <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat</button>
+            <div id="catEditor" style="margin-top:10px"></div>
+            <button id="addCatBtn" style="background:var(--border); color:var(--text); margin-top:10px">+ Přidat kategorii</button>
         </div>
 
         <div id="adminTab" class="hidden">
-            <h2>Admin Panel</h2>
-            <p style="opacity:0.5">Zde zatím nic není.</p>
+            <h2 style="margin-top:0">Admin Panel</h2>
+            <p style="opacity:0.5">Prázdný tab.</p>
         </div>
 
-        <button id="closeSettings" style="margin-top:20px;">Zavřít</button>
+        <button id="closeSettings" style="margin-top:20px; background: var(--text); color: var(--bg)">Zavřít</button>
     </div>
 </div>
 
@@ -181,7 +180,7 @@
     const app = {
         user: null, txns: [], curMonth: 'all', isAdmin: false,
         curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
-        editingId: null,
+        editId: null,
         defCats: ["Jídlo 🍕", "Běžné 🏠", "Nákupy 🛍️", "Ostatní ⚙️"],
 
         async start() {
@@ -230,12 +229,12 @@
         },
 
         switchTab(tab) {
-            const isPersonal = tab === 'personal';
-            document.getElementById('personalTab').classList.toggle('hidden', !isPersonal);
-            document.getElementById('adminTab').classList.toggle('hidden', isPersonal);
+            const isPers = tab === 'personal';
+            document.getElementById('personalTab').classList.toggle('hidden', !isPers);
+            document.getElementById('adminTab').classList.toggle('hidden', isPers);
             const btns = document.querySelectorAll('.tab-btn');
-            btns[0].classList.toggle('active', isPersonal);
-            btns[1].classList.toggle('active', !isPersonal);
+            btns[0].classList.toggle('active', isPers);
+            btns[1].classList.toggle('active', !isPers);
         },
 
         async login() {
@@ -257,36 +256,36 @@
         updateUI() {
             const now = new Date().toISOString().slice(0,10);
             const total = this.txns.filter(t => t.date <= now).reduce((a, b) => a + b.amount, 0);
-            document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
+            document.getElementById('balToday').innerText = `${total.toLocaleString()}${this.curr}`;
             
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
             
             document.getElementById('txnList').innerHTML = filtered.map(t => {
-                const isEditing = this.editingId === t.id;
+                if (this.editId === t.id) {
+                    return `
+                    <div class="txn-item">
+                        <div class="txn-edit-mode">
+                            <input type="text" id="eDesc" value="${t.description}" style="flex:2">
+                            <input type="number" id="eAmt" value="${t.amount}" style="flex:1">
+                        </div>
+                        <div style="display:flex">
+                            <button class="btn-icon" onclick="app.saveEdit('${t.id}')">✅</button>
+                            <button class="btn-icon" onclick="app.setEdit(null)">❌</button>
+                        </div>
+                    </div>`;
+                }
                 return `
                 <div class="txn-item">
-                    ${isEditing ? `
-                        <div class="txn-edit-fields">
-                            <input type="text" id="editDesc" value="${t.description}" style="width:50%">
-                            <input type="number" id="editAmt" value="${t.amount}" style="width:30%">
-                        </div>
-                        <div class="txn-actions">
-                            <button class="btn-icon" onclick="app.saveEdit('${t.id}')">💾</button>
-                            <button class="btn-icon" onclick="app.cancelEdit()">❌</button>
-                        </div>
-                    ` : `
-                        <div class="txn-info">
-                            <b>${t.description}</b>
-                            <small>${t.date} • ${t.category}</small>
-                        </div>
-                        <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}; font-weight:bold; white-space:nowrap; margin-left:10px">
-                            ${t.amount.toLocaleString()} ${this.curr}
+                    <div class="txn-main">
+                        <span>${t.description} <small style="opacity:0.5; margin-left:5px">${t.date}</small></span>
+                        <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}; font-weight:bold">
+                            ${t.amount.toLocaleString()}${this.curr}
                         </span>
-                        <div class="txn-actions">
-                            <button class="btn-icon" onclick="app.startEdit('${t.id}')">📝</button>
-                            <button class="btn-icon" onclick="app.deleteTxn('${t.id}')">🗑️</button>
-                        </div>
-                    `}
+                    </div>
+                    <div style="display:flex">
+                        <button class="btn-icon" onclick="app.setEdit('${t.id}')">✏️</button>
+                        <button class="btn-icon" onclick="app.delTxn('${t.id}')">🗑️</button>
+                    </div>
                 </div>`;
             }).join('');
             
@@ -295,25 +294,16 @@
             this.calcDaily(total);
         },
 
-        startEdit(id) { this.editingId = id; this.updateUI(); },
-        cancelEdit() { this.editingId = null; this.updateUI(); },
-
+        setEdit(id) { this.editId = id; this.updateUI(); },
         async saveEdit(id) {
-            const newDesc = document.getElementById('editDesc').value;
-            const newAmt = parseFloat(document.getElementById('editAmt').value);
-            if (!newDesc || isNaN(newAmt)) return;
-            
-            await db.from('transactions').update({ 
-                description: newDesc, 
-                amount: newAmt 
-            }).eq('id', id);
-            
-            this.editingId = null;
+            const description = document.getElementById('eDesc').value;
+            const amount = parseFloat(document.getElementById('eAmt').value);
+            await db.from('transactions').update({ description, amount }).eq('id', id);
+            this.editId = null;
             this.loadTxns();
         },
-
-        async deleteTxn(id) {
-            if (confirm('Opravdu smazat?')) {
+        async delTxn(id) {
+            if (confirm('Smazat?')) {
                 await db.from('transactions').delete().eq('id', id);
                 this.loadTxns();
             }
@@ -322,7 +312,7 @@
         calcDaily(bal) {
             const lastDay = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
             const days = Math.max(1, lastDay - new Date().getDate());
-            document.getElementById('dailyAvg').innerText = `${Math.round(bal / days).toLocaleString()} ${this.curr}`;
+            document.getElementById('dailyAvg').innerText = `${Math.round(bal / days).toLocaleString()}${this.curr}`;
         },
 
         renderMonthChips() {
