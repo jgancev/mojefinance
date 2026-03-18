@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance App - George Edition</title>
+    <title>Finance App</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -16,12 +16,12 @@
             --hover-bg: #2d3139; 
         }
 
-        * { box-sizing: border-box; transition: background 0.2s, color 0.2s; }
+        * { box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg); color: var(--text); margin: 0;
-            background-image: radial-gradient(circle at top right, rgba(0,102,225,0.07), transparent 600px);
-            min-height: 100vh;
+            font-family: -apple-system, sans-serif;
+            background: var(--bg); color: var(--text);
+            margin: 0; transition: background 0.3s;
+            background-image: radial-gradient(circle at top right, rgba(0,102,225,0.05), transparent 400px);
         }
 
         .header-main {
@@ -32,10 +32,9 @@
 
         #userBtn {
             background: none; border: none; color: inherit;
-            font-weight: 800; cursor: pointer; padding: 8px 12px;
-            border-radius: 8px; font-size: 1rem; width: auto;
+            font-weight: 800; cursor: pointer; padding: 5px 10px;
+            border-radius: 6px; font-size: 1rem; width: auto;
         }
-        #userBtn:hover { background: var(--hover-bg); }
 
         .dashboard-grid {
             display: grid; grid-template-columns: 280px 1fr 280px;
@@ -48,9 +47,8 @@
 
         .card {
             background: var(--card); border: 1px solid var(--border);
-            padding: 20px; border-radius: 14px; margin-bottom: 20px;
+            padding: 20px; border-radius: 12px; margin-bottom: 15px;
             position: relative; overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         .card::before {
             content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
@@ -58,162 +56,120 @@
         }
         .card.income-card::before { background: var(--income); }
         .card.expense-card::before { background: var(--expense); }
-        .card.purple-card::before { background: var(--accent-purple); }
-        .card.teal-card::before { background: var(--accent-teal); }
 
         input, select, button {
             width: 100%; padding: 12px; margin: 8px 0;
-            border-radius: 10px; border: 1px solid var(--border);
+            border-radius: 8px; border: 1px solid var(--border);
             background: var(--card); color: var(--text); font-size: 1rem;
-            outline: none;
         }
-        input:focus { border-color: var(--primary); }
 
-        button { 
-            background: var(--primary); color: white; border: none; 
-            cursor: pointer; font-weight: 700; transition: transform 0.1s;
-        }
-        button:active { transform: scale(0.98); }
+        button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
         .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
-        .btn-danger:hover { background: #fecaca; }
 
         .txn-item {
-            position: relative; display: flex; justify-content: space-between; 
-            padding: 14px 0; border-bottom: 1px solid var(--border);
-            align-items: center;
+            display: flex; justify-content: space-between; 
+            padding: 12px 0; border-bottom: 1px solid var(--border);
         }
         
-        .menu-container { position: relative; }
-        .menu-button { 
-            cursor: pointer; padding: 5px 10px; font-weight: bold; 
-            font-size: 1.2rem; color: var(--primary); border-radius: 6px;
-        }
-        .menu-button:hover { background: var(--hover-bg); }
+        .menu-container { position: relative; display: inline-block; margin-left: 10px; }
+        .menu-button { cursor: pointer; padding: 0 8px; font-weight: bold; font-size: 1.2rem; color: var(--primary); }
         .menu-options { 
             display: none; position: absolute; right: 0; top: 100%; 
             background: var(--card); border: 1px solid var(--border); 
-            border-radius: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); z-index: 100; 
-            min-width: 140px;
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; 
         }
-        .menu-options span { display: block; padding: 12px 16px; cursor: pointer; font-size: 0.9rem; }
-        .menu-options span:hover { background: var(--hover-bg); }
+        .menu-options span { display: block; padding: 10px 15px; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
 
-        .chip {
-            display: inline-block; padding: 8px 14px; background: var(--border);
-            border-radius: 20px; font-size: 0.85rem; cursor: pointer; 
-            margin-right: 8px; margin-bottom: 8px; font-weight: 600;
-        }
-        .chip.selected { background: var(--primary); color: white; }
-
-        .tab-nav { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
-        .tab-link { padding: 10px 5px; cursor: pointer; opacity: 0.5; font-weight: 600; }
-        .tab-link.active { opacity: 1; border-bottom: 3px solid var(--primary); color: var(--primary); }
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .tab-link { padding: 10px; cursor: pointer; opacity: 0.6; }
+        .tab-link.active { opacity: 1; border-bottom: 2px solid var(--primary); font-weight: bold; }
 
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.8); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
         }
         .hidden { display: none !important; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
-        
-        #monthChips::-webkit-scrollbar { display: none; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
     </style>
 </head>
 <body class="dark">
 
 <div id="authSection" class="hidden">
-    <div class="card" style="max-width: 400px; margin: 100px auto;">
-        <h2 style="margin-top:0">Vítejte zpět</h2>
-        <p style="opacity: 0.6; font-size: 0.9rem;">Přihlaste se ke svému účtu Finance</p>
+    <div class="card" style="max-width: 400px; margin: 80px auto;">
+        <h2>Přihlášení</h2>
         <input type="email" id="loginUser" placeholder="Email">
         <input type="password" id="loginPass" placeholder="Heslo">
-        <button id="loginBtn" style="margin-top:15px">Vstoupit do aplikace</button>
+        <button id="loginBtn">Vstoupit</button>
     </div>
 </div>
 
 <div id="mainSection" class="hidden">
     <div class="header-main">
         <button id="userBtn"></button>
-        <button id="themeBtn" style="width:auto; padding: 8px 16px; display: flex; align-items: center; gap: 8px;"></button>
+        <button id="themeBtn" style="width:auto; padding: 8px 15px;"></button>
     </div>
     
     <div class="dashboard-grid">
         <div id="leftCol">
             <div class="card">
-                <div id="balToday" style="font-size:2.2rem; font-weight:800; text-align:center; letter-spacing:-1px;">0</div>
-                <p style="text-align:center; opacity:0.6; margin:5px 0 0; font-size:0.9rem; font-weight:600;">Aktuální zůstatek</p>
+                <div id="balToday" style="font-size:2rem; font-weight:800; text-align:center">0</div>
+                <p style="text-align:center; opacity:0.6; margin:0; font-size:0.9rem">Zůstatek</p>
             </div>
-            
             <div class="card expense-card">
-                <h3 style="color:var(--expense); margin:0 0 10px; font-size:1.1rem">Nový výdaj</h3>
+                <h3 style="color:var(--expense); margin-top:0; font-size:1.1rem">Výdaj</h3>
                 <input type="date" id="expDate">
-                <input type="text" id="expDesc" placeholder="Za co jste utratili?">
+                <input type="text" id="expDesc" placeholder="Popis">
                 <input type="number" id="expAmt" placeholder="Částka">
                 <select id="expCat"></select>
-                <button id="saveExpBtn" style="background:var(--expense); margin-top:10px;">Zapsat výdaj</button>
+                <button id="saveExpBtn" style="background:var(--expense)">Uložit</button>
             </div>
-            
             <div class="card income-card">
-                <h3 style="color:var(--income); margin:0 0 10px; font-size:1.1rem">Nový příjem</h3>
+                <h3 style="color:var(--income); margin-top:0; font-size:1.1rem">Příjem</h3>
                 <input type="date" id="incDate">
-                <input type="text" id="incDesc" placeholder="Odkud peníze přišly?">
+                <input type="text" id="incDesc" placeholder="Popis příjmu">
                 <input type="number" id="incAmt" placeholder="Částka">
-                <button id="saveIncBtn" style="background:var(--income); margin-top:10px;">Zapsat příjem</button>
+                <button id="saveIncBtn" style="background:var(--income)">Uložit</button>
             </div>
         </div>
 
         <div id="midCol">
             <div class="card">
-                <h3 style="margin:0 0 15px; font-size:1.2rem">Historie plateb</h3>
-                <div id="monthChips" style="overflow-x:auto; white-space:nowrap; margin-bottom:15px; padding-bottom:5px;"></div>
+                <h3 style="margin-top:0; font-size:1.1rem">Historie</h3>
+                <div id="monthChips" style="overflow-x:auto; white-space:nowrap; margin-bottom:15px"></div>
                 <div id="txnList"></div>
             </div>
         </div>
 
         <div id="rightCol">
             <div class="card teal-card">
-                <p style="text-align:center; margin:0; opacity:0.6; font-size:0.9rem; font-weight:600;">Můžete utratit denně</p>
-                <div id="dailyAvg" style="font-size:1.8rem; font-weight:800; text-align:center; margin-top:5px;">0</div>
+                <p style="text-align:center; margin:0; opacity:0.6; font-size:0.9rem">Denní limit</p>
+                <div id="dailyAvg" style="font-size:1.8rem; font-weight:800; text-align:center">0</div>
             </div>
-            
-            <div class="card purple-card">
-                <h3 style="margin:0 0 15px; font-size:1rem; text-align:center; opacity:0.8">Rozložení výdajů</h3>
-                <canvas id="myChart"></canvas>
-            </div>
-            
-            <button id="logoutBtn" style="background:var(--border); color:var(--text); font-size:0.9rem; margin-top:10px;">Bezpečně odhlásit</button>
+            <div class="card purple-card"><canvas id="myChart"></canvas></div>
+            <button id="logoutBtn" style="background:var(--border); color:var(--text); font-size:0.9rem">Odhlásit se</button>
         </div>
     </div>
 </div>
 
 <div id="settingsOverlay" class="overlay hidden">
-    <div class="card" style="width:95%; max-width:550px; padding:30px;">
+    <div class="card" style="width:95%; max-width:550px">
         <div class="tab-nav">
-            <span class="tab-link active" id="tab-gen-link" onclick="app.switchTab('general')">Nastavení</span>
-            <span class="tab-link hidden" id="tab-adm-link" onclick="app.switchTab('admin')">Administrace</span>
+            <span class="tab-link active" id="tab-gen-link" onclick="app.switchTab('general')">Obecné</span>
+            <span class="tab-link hidden" id="tab-adm-link" onclick="app.switchTab('admin')">Admin tab</span>
         </div>
-
         <div id="tab-general">
-            <label style="font-size:0.85rem; font-weight:700; display:block; margin-bottom:5px;">Preferovaná měna</label>
-            <select id="stCurr" style="margin-bottom:20px;"><option value="Kč">Česká koruna (Kč)</option><option value="€">Euro (€)</option></select>
-            
-            <label style="font-size:0.85rem; font-weight:700; display:block; margin-bottom:5px;">Moje kategorie výdajů</label>
-            <div id="catEditor" style="max-height:200px; overflow-y:auto; margin-bottom:10px;"></div>
-            <button id="addCatBtn" style="background:var(--border); color:var(--text); font-size:0.9rem;">+ Přidat novou kategorii</button>
-            
-            <hr style="border:0; border-top:1px solid var(--border); margin: 25px 0;">
-            <button onclick="app.deleteMyAccount()" class="btn-danger" style="font-size:0.9rem;">Definitivně smazat můj účet</button>
+            <select id="stCurr"><option value="Kč">Kč</option><option value="€">€</option></select>
+            <div id="catEditor"></div>
+            <button id="addCatBtn" style="background:var(--border); color:var(--text)">+ Přidat kategorii</button>
+            <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">
+            <button onclick="app.deleteMyAccount()" class="btn-danger">Smazat můj účet</button>
         </div>
-
         <div id="tab-admin" class="hidden">
-            <h3 style="margin:0 0 15px;">Registrovaní uživatelé</h3>
-            <div id="adminUserList" style="max-height: 350px; overflow-y: auto; border: 1px solid var(--border); border-radius:10px;"></div>
+            <div id="adminUserList"></div>
         </div>
-
-        <button id="closeSettings" style="margin-top:25px; background:var(--text); color:var(--card)">Zavřít nastavení</button>
+        <button id="closeSettings" style="margin-top:20px;">Zavřít</button>
     </div>
 </div>
 
@@ -225,10 +181,9 @@
     let chart = null;
 
     const app = {
-        user: null, txns: [], curMonth: 'all', 
-        curr: 'Kč', theme: localStorage.getItem('theme') || 'dark',
-        editingId: null, isAdmin: false,
-        defCats: ["Jídlo 🍕", "Bydlení 🏠", "Doprava 🚗", "Nákupy 🛍️", "Zábava 🎭", "Ostatní ⚙️"],
+        user: null, txns: [], curMonth: 'all', curr: 'Kč', 
+        theme: localStorage.getItem('theme') || 'dark', editingId: null,
+        defCats: ["Jídlo 🍕", "Běžné 🏠", "Nákupy 🛍️", "Ostatní ⚙️"],
 
         async start() {
             this.applyTheme();
@@ -243,29 +198,22 @@
             get('loginBtn').onclick = () => this.login();
             get('logoutBtn').onclick = () => this.logout();
             get('themeBtn').onclick = () => this.cycleTheme();
-            get('userBtn').onclick = () => { get('settingsOverlay').classList.remove('hidden'); this.switchTab('general'); };
+            get('userBtn').onclick = () => get('settingsOverlay').classList.remove('hidden');
             get('closeSettings').onclick = () => get('settingsOverlay').classList.add('hidden');
             get('saveExpBtn').onclick = () => this.saveTxn(false);
             get('saveIncBtn').onclick = () => this.saveTxn(true);
             get('addCatBtn').onclick = () => this.addCat();
             get('stCurr').onchange = (e) => this.updateCurr(e.target.value);
-            
-            document.addEventListener('click', e => {
-                if (!e.target.closest('.menu-container')) {
-                    document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
-                }
-            });
+            document.addEventListener('click', e => { if (!e.target.closest('.menu-container')) document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none'); });
         },
 
         async handleAuth(authUser) {
             this.user = authUser;
             const { data: prof } = await db.from('app_users').select('*').eq('id', authUser.id).maybeSingle();
-            
             if (prof) {
                 this.curr = prof.currency || 'Kč';
                 this.user.custom_categories = prof.custom_categories || this.defCats;
-                this.isAdmin = prof.is_admin || false;
-                if (this.isAdmin) document.getElementById('tab-adm-link').classList.remove('hidden');
+                if (prof.is_admin) document.getElementById('tab-adm-link').classList.remove('hidden');
             }
             this.init();
         },
@@ -275,197 +223,56 @@
             document.getElementById('mainSection').classList.remove('hidden');
             document.getElementById('userBtn').innerText = this.user.email;
             document.getElementById('stCurr').value = this.curr;
-            const today = new Date().toISOString().slice(0,10);
-            document.getElementById('expDate').value = today;
-            document.getElementById('incDate').value = today;
-            this.renderCats();
-            this.loadTxns();
+            this.renderCats(); this.loadTxns();
         },
 
         async login() {
-            const email = document.getElementById('loginUser').value;
-            const pass = document.getElementById('loginPass').value;
-            const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
-            if (error) alert("Přihlášení selhalo: " + error.message); 
-            else this.handleAuth(data.user);
+            const { data, error } = await db.auth.signInWithPassword({ email: document.getElementById('loginUser').value, password: document.getElementById('loginPass').value });
+            if (error) alert(error.message); else this.handleAuth(data.user);
         },
-
         async logout() { await db.auth.signOut(); location.reload(); },
 
         async loadTxns() {
-            const { data, error } = await db.from('transactions')
-                .select('*')
-                .eq('user_id', this.user.id)
-                .order('date', {ascending: false});
-            if (error) console.error(error);
-            this.txns = data || [];
-            this.updateUI();
+            const { data } = await db.from('transactions').select('*').eq('user_id', this.user.id).order('date', {ascending: false});
+            this.txns = data || []; this.updateUI();
         },
 
         updateUI() {
-            const now = new Date().toISOString().slice(0,10);
             const total = this.txns.reduce((a, b) => a + b.amount, 0);
             document.getElementById('balToday').innerText = `${total.toLocaleString()} ${this.curr}`;
-            
             const filtered = this.curMonth === 'all' ? this.txns : this.txns.filter(t => t.date.slice(0,7) === this.curMonth);
-            const listEl = document.getElementById('txnList');
-            listEl.innerHTML = '';
-
+            const listEl = document.getElementById('txnList'); listEl.innerHTML = '';
             filtered.forEach(t => {
-                const isEditing = this.editingId === t.id;
-                const div = document.createElement('div');
-                div.className = 'txn-item';
-                
-                if (isEditing) {
-                    div.innerHTML = `
-                    <div style="width:100%; background:var(--bg); padding:15px; border-radius:12px; border:1px solid var(--primary);">
-                        <input type="date" id="edit-date-${t.id}" value="${t.date}">
-                        <input type="text" id="edit-desc-${t.id}" value="${t.description}">
-                        <input type="number" id="edit-amt-${t.id}" value="${Math.abs(t.amount)}">
-                        <div style="display:flex; gap:10px; margin-top:5px;">
-                            <button onclick="app.saveInline('${t.id}', ${t.amount > 0})">Uložit</button>
-                            <button onclick="app.setEdit(null)" style="background:var(--border); color:var(--text)">Zrušit</button>
-                        </div>
-                    </div>`;
-                } else {
-                    div.innerHTML = `
-                    <div>
-                        <strong style="display:block; margin-bottom:2px;">${t.description}</strong>
-                        <small style="opacity:0.5; font-weight:600;">${new Date(t.date).toLocaleDateString()} • ${t.category}</small>
-                    </div>
-                    <div style="display:flex; align-items:center;">
-                        <span style="color:${t.amount>0?'var(--income)':'var(--expense)'}; font-weight:800; font-size:1.05rem;">
-                            ${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString()} ${this.curr}
-                        </span>
-                        <div class="menu-container">
-                            <span class="menu-button" onclick="app.toggleMenu('${t.id}')">⋮</span>
-                            <div class="menu-options" id="menu-${t.id}">
-                                <span onclick="app.setEdit('${t.id}')">✏️ Upravit záznam</span>
-                                <span onclick="app.delTxn('${t.id}')" style="color:var(--expense)">❌ Smazat</span>
-                            </div>
-                        </div>
-                    </div>`;
-                }
+                const div = document.createElement('div'); div.className = 'txn-item';
+                div.innerHTML = `<div><strong>${t.description}</strong><br><small style="opacity:0.5">${t.category}</small></div>
+                <div style="display:flex; align-items:center;"><span style="color:${t.amount>0?'var(--income)':'var(--expense)'}">${t.amount.toLocaleString()}</span>
+                <div class="menu-container"><span class="menu-button" onclick="app.toggleMenu('${t.id}')">⋮</span>
+                <div class="menu-options" id="menu-${t.id}"><span onclick="app.delTxn('${t.id}')">Smazat</span></div></div></div>`;
                 listEl.appendChild(div);
             });
-            
-            this.renderMonthChips();
             this.updateChart(filtered);
-            this.calcDaily(total);
+            const lastDay = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+            document.getElementById('dailyAvg').innerText = `${Math.round(total / Math.max(1, lastDay - new Date().getDate())).toLocaleString()} ${this.curr}`;
         },
 
-        toggleMenu(id) {
-            document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none');
-            const menu = document.getElementById(`menu-${id}`);
-            if (menu) menu.style.display = 'block';
-        },
-
-        setEdit(id) { this.editingId = id; this.updateUI(); },
-
-        async saveInline(id, isIncome) {
-            const date = document.getElementById(`edit-date-${id}`).value;
-            const description = document.getElementById(`edit-desc-${id}`).value;
-            const amtRaw = parseFloat(document.getElementById(`edit-amt-${id}`).value);
-            const amount = isIncome ? Math.abs(amtRaw) : -Math.abs(amtRaw);
-            
-            await db.from('transactions').update({ date, description, amount }).eq('id', id);
-            this.editingId = null;
-            this.loadTxns();
-        },
-
-        async delTxn(id) {
-            if (confirm('Opravdu chcete smazat tuto platbu?')) {
-                await db.from('transactions').delete().eq('id', id);
-                this.loadTxns();
-            }
-        },
-
-        calcDaily(bal) {
-            const today = new Date();
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-            const remainingDays = Math.max(1, lastDay - today.getDate() + 1);
-            const daily = Math.max(0, bal / remainingDays);
-            document.getElementById('dailyAvg').innerText = `${Math.round(daily).toLocaleString()} ${this.curr}`;
-        },
-
-        renderMonthChips() {
-            const months = ['all', ...new Set(this.txns.map(t => t.date.slice(0,7)).sort().reverse())];
-            document.getElementById('monthChips').innerHTML = months.map(m => `
-                <span class="chip ${this.curMonth===m?'selected':''}" onclick="app.setMonth('${m}')">
-                    ${m === 'all' ? 'Všechny výpisy' : m.split('-').reverse().join('/')}
-                </span>`).join('');
-        },
-        setMonth(m) { this.curMonth = m; this.updateUI(); },
+        toggleMenu(id) { document.querySelectorAll('.menu-options').forEach(m => m.style.display = 'none'); document.getElementById(`menu-${id}`).style.display = 'block'; },
+        async delTxn(id) { if (confirm('Smazat?')) { await db.from('transactions').delete().eq('id', id); this.loadTxns(); } },
 
         async saveTxn(isInc) {
-            const pre = isInc ? 'inc' : 'exp';
-            const amt = parseFloat(document.getElementById(pre+'Amt').value);
-            const desc = document.getElementById(pre+'Desc').value;
-            const date = document.getElementById(pre+'Date').value;
-            const cat = isInc ? 'Příjem' : document.getElementById('expCat').value;
-
-            if (isNaN(amt) || !desc) { alert("Vyplňte prosím částku a popis."); return; }
-
-            await db.from('transactions').insert([{
-                user_id: this.user.id, 
-                amount: isInc ? amt : -amt, 
-                description: desc,
-                category: cat,
-                date: date
-            }]);
-            
-            document.getElementById(pre+'Amt').value = '';
-            document.getElementById(pre+'Desc').value = '';
+            const pre = isInc ? 'inc' : 'exp'; const amt = parseFloat(document.getElementById(pre+'Amt').value);
+            if (isNaN(amt)) return;
+            await db.from('transactions').insert([{ user_id: this.user.id, amount: isInc?amt:-amt, description: document.getElementById(pre+'Desc').value, category: isInc?'Příjem':document.getElementById('expCat').value, date: document.getElementById(pre+'Date').value }]);
             this.loadTxns();
         },
 
         updateChart(list) {
             const ctx = document.getElementById('myChart');
-            const expenses = list.filter(t => t.amount < 0);
-            const dataMap = {};
-            expenses.forEach(t => dataMap[t.category] = (dataMap[t.category] || 0) + Math.abs(t.amount));
-            
+            const data = {}; list.filter(t => t.amount < 0).forEach(t => data[t.category] = (data[t.category] || 0) + Math.abs(t.amount));
             if (chart) chart.destroy();
-            if (expenses.length === 0) return;
-
-            chart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(dataMap),
-                    datasets: [{
-                        data: Object.values(dataMap),
-                        backgroundColor: ['#0066e1', '#22ad5c', '#9d28b0', '#e60050', '#008183', '#f59e0b'],
-                        borderWidth: 0
-                    }]
-                },
-                options: { 
-                    cutout: '70%',
-                    plugins: { legend: { display: false } } 
-                }
-            });
+            chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#0066e1', '#22ad5c', '#9d28b0', '#e60050'] }] }, options: { plugins: { legend: { display: false } } } });
         },
 
-        renderCats() {
-            const cats = this.user.custom_categories || this.defCats;
-            document.getElementById('expCat').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
-            document.getElementById('catEditor').innerHTML = cats.map((c, i) => `
-                <div style="display:flex; gap:10px; margin-bottom:8px;">
-                    <input value="${c}" onchange="app.editCat(${i}, this.value)" style="margin:0;">
-                    <button onclick="app.removeCat(${i})" style="width:45px; margin:0; background:var(--hover-bg); color:var(--expense)">✕</button>
-                </div>`).join('');
-        },
-        async editCat(i, v) { this.user.custom_categories[i] = v; await this.savePref(); this.renderCats(); },
-        async removeCat(i) { this.user.custom_categories.splice(i, 1); await this.savePref(); this.renderCats(); },
-        async addCat() { this.user.custom_categories.push("Nová kategorie"); await this.savePref(); this.renderCats(); },
-        async updateCurr(v) { this.curr = v; await this.savePref(); this.updateUI(); },
-        async savePref() { 
-            await db.from('app_users').update({ 
-                custom_categories: this.user.custom_categories, 
-                currency: this.curr 
-            }).eq('id', this.user.id); 
-        },
-
-        async switchTab(tab) {
+        switchTab(tab) {
             document.getElementById('tab-gen-link').classList.toggle('active', tab === 'general');
             document.getElementById('tab-adm-link').classList.toggle('active', tab === 'admin');
             document.getElementById('tab-general').classList.toggle('hidden', tab !== 'general');
@@ -474,46 +281,34 @@
         },
 
         async loadAdminData() {
-            const container = document.getElementById('adminUserList');
-            container.innerHTML = '<p style="padding:20px;">Načítám seznam uživatelů...</p>';
-            
             const { data: users } = await db.from('app_users').select('*');
-            const { data: allTxns } = await db.from('transactions').select('user_id, amount');
-            
-            let html = '<table><thead><tr><th>Uživatel</th><th>Zůstatek</th></tr></thead><tbody>';
+            let html = '<table><tr><th>Email</th><th>Akce</th></tr>';
             users.forEach(u => {
-                const bal = allTxns.filter(t => t.user_id === u.id).reduce((s, t) => s + t.amount, 0);
-                html += `<tr>
-                    <td><div style="font-weight:700;">${u.email}</div><div style="font-size:0.7rem; opacity:0.5;">${u.id}</div></td>
-                    <td style="font-weight:700; color:var(--primary);">${bal.toLocaleString()} ${u.currency || 'Kč'}</td>
-                </tr>`;
+                html += `<tr><td>${u.email}</td><td><button onclick="app.adminDelete('${u.id}')" class="btn-danger" style="padding:5px; width:auto;">Smazat</button></td></tr>`;
             });
-            html += '</tbody></table>';
-            container.innerHTML = html;
+            document.getElementById('adminUserList').innerHTML = html + '</table>';
         },
 
-        async deleteMyAccount() {
-            if (confirm("UPOZORNĚNÍ: Smazáním účtu přijdete o všechna data. Pokračovat?")) {
-                await db.from('transactions').delete().eq('user_id', this.user.id);
-                await db.from('app_users').delete().eq('id', this.user.id);
-                this.logout();
-            }
-        },
+        async adminDelete(id) { if(confirm("Smazat uživatele?")) alert("Vyžaduje Admin SDK."); },
 
-        cycleTheme() {
-            this.theme = this.theme === 'light' ? 'dark' : 'light';
-            localStorage.setItem('theme', this.theme);
-            this.applyTheme();
+        renderCats() {
+            const cats = this.user.custom_categories || this.defCats;
+            document.getElementById('expCat').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+            document.getElementById('catEditor').innerHTML = cats.map((c, i) => `<input value="${c}" onchange="app.editCat(${i}, this.value)">`).join('');
         },
+        async editCat(i, v) { this.user.custom_categories[i] = v; await this.savePref(); },
+        async addCat() { this.user.custom_categories.push("Nová"); await this.savePref(); this.renderCats(); },
+        async updateCurr(v) { this.curr = v; await this.savePref(); this.updateUI(); },
+        async savePref() { await db.from('app_users').update({ custom_categories: this.user.custom_categories, currency: this.curr }).eq('id', this.user.id); },
+        async deleteMyAccount() { if (confirm("Smazat účet?")) { await db.from('transactions').delete().eq('user_id', this.user.id); await db.from('app_users').delete().eq('id', this.user.id); this.logout(); } },
+
+        cycleTheme() { this.theme = this.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('theme', this.theme); this.applyTheme(); },
         applyTheme() {
             document.body.classList.toggle('dark', this.theme === 'dark');
-            const btn = document.getElementById('themeBtn');
-            btn.innerHTML = this.theme === 'dark' ? '🌙 Tmavý režim' : '☀️ Světelný režim';
+            document.getElementById('themeBtn').innerHTML = this.theme === 'dark' ? '🌙 Tmavý' : '☀️ Světlý';
         }
     };
-
-    window.app = app;
-    app.start();
+    window.app = app; app.start();
 </script>
 </body>
 </html>
